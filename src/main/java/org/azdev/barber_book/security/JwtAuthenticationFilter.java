@@ -46,7 +46,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         jwt = authHeader.substring(7);
 
         // 4. Extrai o e-mail (subject) de dentro do token
-        userEmail = jwtService.extractUsername(jwt);
+        try{
+            userEmail = jwtService.extractUsername(jwt);
+        } catch (io.jsonwebtoken.ExpiredJwtException ex) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         // 5. Se tem e-mail no token e o usuário ainda não está logado no contexto atual do Spring...
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -79,5 +84,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 8. Libera a requisição para continuar o fluxo
         filterChain.doFilter(request, response);
+    }
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        return path.startsWith("/api/auth/");
     }
 }
