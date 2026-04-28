@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface UserRepository extends JpaRepository<User, Long> {
-    // Usado pelo UserDetailsService do Spring Security
+public interface UserRepository extends JpaRepository<User, UUID> {
+
     Optional<User> findByEmail(String email);
 
-    // Usado no painel de admin para listar os barbeiros da loja
     List<User> findAllByTenantId(UUID tenantId);
+
 }

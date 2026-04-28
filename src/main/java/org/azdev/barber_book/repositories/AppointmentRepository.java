@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
+public interface AppointmentRepository extends JpaRepository<Appointment, UUID> {
     List<Appointment> findByTenantIdAndStartTimeBetweenOrderByStartTimeAsc(
             UUID tenantId,
             LocalDateTime startOfDay,
