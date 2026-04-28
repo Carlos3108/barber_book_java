@@ -17,7 +17,7 @@ public class Appointment extends BaseEntity{
     private LocalDateTime startTime;
 
     @Column(name = "end_time", nullable = false)
-    private LocalDateTime endTime; // Calculado: startTime + slots de 30min
+    private LocalDateTime endTime;
 
     @Column(name = "client_name", nullable = false)
     private String clientName;

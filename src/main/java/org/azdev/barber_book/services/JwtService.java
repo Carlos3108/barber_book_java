@@ -24,14 +24,12 @@ public class JwtService {
     @Value("${api.security.token.expiration}")
     private Long expiration;
 
-    // Gera a chave criptográfica baseada no seu secret
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secret);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateToken(User user) {
-        // 🚀 O Pulo do Gato: Injetando o tenant_id nas claims!
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("tenantId", user.getTenant().getId().toString());
 
