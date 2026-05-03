@@ -33,8 +33,17 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/**", "/api/tenants/register", "/api/public/**").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/tenants/register",
+                                "/api/public/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs",
+                                "/swagger-resources/**",
+                                "/webjars/**")
+                        .permitAll().anyRequest().authenticated()
                 )
         .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authenticationProvider(authenticationProvider)
