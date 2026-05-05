@@ -5,7 +5,6 @@ import org.azdev.barber_book.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -16,8 +15,7 @@ class SecurityConfigTest {
     @Test
     void corsConfigurationAllowsFrontendAndExpectedMethods() {
         SecurityConfig config = new SecurityConfig(
-                Mockito.mock(JwtAuthenticationFilter.class),
-                Mockito.mock(AuthenticationProvider.class)
+                Mockito.mock(JwtAuthenticationFilter.class)
         );
 
         CorsConfigurationSource source = config.corsConfigurationSource();
@@ -29,5 +27,4 @@ class SecurityConfigTest {
         assertThat(cors.getAllowCredentials()).isTrue();
     }
 }
-
 

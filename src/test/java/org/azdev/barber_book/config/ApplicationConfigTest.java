@@ -1,14 +1,15 @@
 package org.azdev.barber_book.config;
 
 import org.azdev.barber_book.models.User;
+import org.azdev.barber_book.models.Tenant;
+import org.azdev.barber_book.security.AuthenticatedUserPrincipal;
 import org.azdev.barber_book.repositories.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,21 +25,24 @@ class ApplicationConfigTest {
 
     @Mock
     private UserRepository userRepository;
-    @Mock
-    private AuthenticationConfiguration authenticationConfiguration;
-    @Mock
-    private AuthenticationManager authenticationManager;
 
     @Test
     void userDetailsServiceLoadsUserByEmail() {
         ApplicationConfig config = new ApplicationConfig(userRepository);
         User user = new User();
         user.setEmail("owner@test.com");
+        Tenant tenant = new Tenant();
+        tenant.setPlanStatus("ACTIVE");
+        tenant.setName("Barbearia Central");
+        user.setTenant(tenant);
 
         when(userRepository.findByEmail("owner@test.com")).thenReturn(Optional.of(user));
         UserDetailsService service = config.userDetailsService();
 
-        assertThat(service.loadUserByUsername("owner@test.com")).isEqualTo(user);
+        assertThat(service.loadUserByUsername("owner@test.com"))
+                .isInstanceOf(AuthenticatedUserPrincipal.class)
+            .extracting("username")
+                .isEqualTo("owner@test.com");
     }
 
     @Test
@@ -52,24 +56,21 @@ class ApplicationConfigTest {
     }
 
     @Test
-    void authenticationProviderAndPasswordEncoderAreCreated() {
+    void authenticationManagerAndPasswordEncoderAreCreated() {
         ApplicationConfig config = new ApplicationConfig(userRepository);
+        Tenant tenant = new Tenant();
+        tenant.setPlanStatus("ACTIVE");
+        tenant.setName("Barbearia Central");
+        User user = new User();
+        user.setEmail("owner@test.com");
+        user.setPassword(config.passwordEncoder().encode("secret"));
+        user.setTenant(tenant);
+        when(userRepository.findByEmail("owner@test.com")).thenReturn(Optional.of(user));
 
-        AuthenticationProvider provider = config.authenticationProvider();
+        AuthenticationManager manager = config.authenticationManager();
         PasswordEncoder encoder = config.passwordEncoder();
 
-        assertThat(provider).isNotNull();
+        assertThat(manager.authenticate(new UsernamePasswordAuthenticationToken("owner@test.com", "secret"))).isNotNull();
         assertThat(encoder.matches("secret", encoder.encode("secret"))).isTrue();
     }
-
-    @Test
-    void authenticationManagerComesFromConfiguration() throws Exception {
-        ApplicationConfig config = new ApplicationConfig(userRepository);
-        when(authenticationConfiguration.getAuthenticationManager()).thenReturn(authenticationManager);
-
-        AuthenticationManager manager = config.authenticationManager(authenticationConfiguration);
-
-        assertThat(manager).isSameAs(authenticationManager);
-    }
 }
-

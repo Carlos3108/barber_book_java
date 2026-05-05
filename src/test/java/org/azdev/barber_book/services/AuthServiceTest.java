@@ -5,6 +5,7 @@ import org.azdev.barber_book.dtos.AuthenticationResponse;
 import org.azdev.barber_book.dtos.RegisterRequest;
 import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.models.User;
+import org.azdev.barber_book.security.AuthenticatedUserPrincipal;
 import org.azdev.barber_book.repositories.TenantRepository;
 import org.azdev.barber_book.repositories.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -51,16 +52,19 @@ class AuthServiceTest {
         RegisterRequest request = new RegisterRequest("Barber Shop", "Carlos", "carlos@test.com", "123456");
         Tenant savedTenant = new Tenant();
         savedTenant.setId(UUID.randomUUID());
+        savedTenant.setName("Barbearia Central");
+        savedTenant.setPlanStatus("TRIAL");
         User savedUser = new User();
         savedUser.setEmail(request.email());
         savedUser.setTenant(savedTenant);
+        savedUser.setPassword("encoded-password");
 
         when(userRepository.findByEmail(request.email())).thenReturn(Optional.empty());
         when(slugService.generateSlug(request.shopName())).thenReturn("barber-shop-abcd");
         when(passwordEncoder.encode(request.password())).thenReturn("encoded-password");
         when(tenantRepository.save(any(Tenant.class))).thenReturn(savedTenant);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
-        when(jwtService.generateToken(savedUser)).thenReturn("jwt-token");
+        when(jwtService.generateToken(any(AuthenticatedUserPrincipal.class))).thenReturn("jwt-token");
 
         AuthenticationResponse response = authService.register(request);
 
@@ -87,9 +91,14 @@ class AuthServiceTest {
         AuthenticationRequest request = new AuthenticationRequest("carlos@test.com", "123456");
         User user = new User();
         user.setEmail(request.email());
+        Tenant tenant = new Tenant();
+        tenant.setId(UUID.randomUUID());
+        tenant.setName("Barbearia Central");
+        tenant.setPlanStatus("ACTIVE");
+        user.setTenant(tenant);
 
         when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(user));
-        when(jwtService.generateToken(user)).thenReturn("jwt-token");
+        when(jwtService.generateToken(any(AuthenticatedUserPrincipal.class))).thenReturn("jwt-token");
 
         AuthenticationResponse response = authService.authenticate(request);
 

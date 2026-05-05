@@ -1,10 +1,10 @@
 package org.azdev.barber_book.services;
 
 import org.azdev.barber_book.models.Tenant;
+import org.azdev.barber_book.security.AuthenticatedUserPrincipal;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.UUID;
 
@@ -25,22 +25,22 @@ class JwtServiceTest {
 
     @Test
     void generateTokenAllowsClaimExtractionAndValidation() {
-        org.azdev.barber_book.models.User appUser = buildAppUser("owner@test.com");
+        AuthenticatedUserPrincipal appUser = buildPrincipal("owner@test.com", "TRIAL");
 
         String token = jwtService.generateToken(appUser);
 
         assertThat(jwtService.extractUsername(token)).isEqualTo("owner@test.com");
-        assertThat(jwtService.extractTenantId(token)).isEqualTo(appUser.getTenant().getId().toString());
-        assertThat(jwtService.isTokenValid(token, User.withUsername("owner@test.com").password("x").roles("ADMIN").build()))
+        assertThat(jwtService.extractTenantId(token)).isEqualTo(appUser.tenantId().toString());
+        assertThat(jwtService.isTokenValid(token, buildPrincipal("owner@test.com", "TRIAL")))
                 .isTrue();
     }
 
     @Test
     void isTokenValidReturnsFalseForDifferentUser() {
-        org.azdev.barber_book.models.User appUser = buildAppUser("owner@test.com");
+        AuthenticatedUserPrincipal appUser = buildPrincipal("owner@test.com", "TRIAL");
         String token = jwtService.generateToken(appUser);
 
-        boolean valid = jwtService.isTokenValid(token, User.withUsername("other@test.com").password("x").roles("ADMIN").build());
+        boolean valid = jwtService.isTokenValid(token, buildPrincipal("other@test.com", "TRIAL"));
 
         assertThat(valid).isFalse();
     }
@@ -48,24 +48,22 @@ class JwtServiceTest {
     @Test
     void isTokenValidReturnsFalseForExpiredToken() {
         ReflectionTestUtils.setField(jwtService, "expiration", -1L);
-        org.azdev.barber_book.models.User appUser = buildAppUser("owner@test.com");
+        AuthenticatedUserPrincipal appUser = buildPrincipal("owner@test.com", "TRIAL");
         String token = jwtService.generateToken(appUser);
 
         assertThatThrownBy(() -> jwtService.isTokenValid(
                 token,
-                User.withUsername("owner@test.com").password("x").roles("ADMIN").build()
+                buildPrincipal("owner@test.com", "TRIAL")
         )).isInstanceOf(io.jsonwebtoken.ExpiredJwtException.class);
     }
 
-    private org.azdev.barber_book.models.User buildAppUser(String email) {
+    private AuthenticatedUserPrincipal buildPrincipal(String email, String planStatus) {
         Tenant tenant = new Tenant();
         tenant.setId(UUID.randomUUID());
+        tenant.setPlanStatus(planStatus);
+        tenant.setName("Barbearia Central");
 
-        org.azdev.barber_book.models.User user = new org.azdev.barber_book.models.User();
-        user.setEmail(email);
-        user.setPassword("pwd");
-        user.setTenant(tenant);
-        return user;
+        return new AuthenticatedUserPrincipal(UUID.randomUUID(), email, "pwd", tenant.getId(), tenant.getPlanStatus());
     }
 }
 
