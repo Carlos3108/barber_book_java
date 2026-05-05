@@ -1,6 +1,5 @@
 package org.azdev.barber_book.security;
 
-import org.azdev.barber_book.models.User;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -9,7 +8,7 @@ import java.util.UUID;
 
 @Component
 public class SecurityUtils {
-    public User getCurrentUser() {
+    public AuthenticatedUserPrincipal getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -18,15 +17,15 @@ public class SecurityUtils {
 
         Object principal = authentication.getPrincipal();
 
-        if (principal instanceof User) {
-            return (User) principal;
+        if (principal instanceof AuthenticatedUserPrincipal) {
+            return (AuthenticatedUserPrincipal) principal;
         }
 
-        throw new IllegalStateException("O usuário atenticado não é do tipo esperado.");
+        throw new IllegalStateException("O usuário autenticado não é do tipo esperado.");
     }
 
     public UUID getCurrentTenantId() {
-        return getCurrentUser().getTenant().getId();
+        return getCurrentUser().tenantId();
     }
 
 }

@@ -5,7 +5,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import org.azdev.barber_book.models.User;
+import org.azdev.barber_book.security.AuthenticatedUserPrincipal;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -29,9 +29,9 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateToken(User user) {
+    public String generateToken(AuthenticatedUserPrincipal user) {
         Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("tenantId", user.getTenant().getId().toString());
+        extraClaims.put("tenantId", user.tenantId().toString());
 
         return Jwts.builder()
                 .claims(extraClaims)
