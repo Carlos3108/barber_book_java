@@ -6,6 +6,7 @@ import org.azdev.barber_book.dtos.AuthenticationResponse;
 import org.azdev.barber_book.dtos.RegisterRequest;
 import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.models.User;
+import org.azdev.barber_book.security.AuthenticatedUserPrincipal;
 import org.azdev.barber_book.repositories.TenantRepository;
 import org.azdev.barber_book.repositories.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -47,7 +48,7 @@ public class AuthService {
         user.setTenant(tenant);
         user = userRepository.save(user);
 
-        var jwtToken = jwtService.generateToken(user);
+        var jwtToken = jwtService.generateToken(AuthenticatedUserPrincipal.from(user));
 
         return new AuthenticationResponse(jwtToken);
     }
@@ -63,7 +64,7 @@ public class AuthService {
         var user = userRepository.findByEmail(request.email())
                 .orElseThrow();
 
-        var jwtToken = jwtService.generateToken(user);
+        var jwtToken = jwtService.generateToken(AuthenticatedUserPrincipal.from(user));
 
         return new AuthenticationResponse(jwtToken);
     }
