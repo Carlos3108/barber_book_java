@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.azdev.barber_book.services.JwtService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,7 +18,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
-@RequiredArgsConstructor // O Lombok vai criar o construtor injetando as dependências `final`
+@RequiredArgsConstructor
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
@@ -41,39 +43,50 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         jwt = authHeader.substring(7);
 
-        try{
+        try {
             userEmail = jwtService.extractUsername(jwt);
+            log.debug("JWT extraído com sucesso. Email: {}", userEmail);
         } catch (io.jsonwebtoken.ExpiredJwtException ex) {
+            log.warn("Token JWT expirado para requisição: {}", request.getRequestURI());
+            filterChain.doFilter(request, response);
+            return;
+        } catch (Exception ex) {
+            log.error("Erro ao extrair username do JWT: {}", ex.getMessage(), ex);
             filterChain.doFilter(request, response);
             return;
         }
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+            try {
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+                log.debug("Usuário carregado: {}", userEmail);
 
-            if (jwtService.isTokenValid(jwt, userDetails)) {
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    log.debug("Token válido para usuário: {}", userEmail);
 
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
 
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-
-                // (Para o futuro):
-                // Aqui nós podemos extrair o tenantId do token e colocar num TenantContext (ThreadLocal)
-                //String tenantId = jwtService.extractTenantId(jwt);
-                //TenantContext.setCurrentTenant(tenantId);
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    log.debug("Autenticação setada no contexto para: {}", userEmail);
+                } else {
+                    log.warn("Token inválido para usuário: {}", userEmail);
+                }
+            } catch (org.springframework.security.core.userdetails.UsernameNotFoundException ex) {
+                log.warn("Usuário não encontrado: {}", userEmail);
+            } catch (Exception ex) {
+                log.error("Erro ao autenticar usuário: {}", ex.getMessage(), ex);
             }
         }
-
-        // 8. Libera a requisição para continuar o fluxo
         filterChain.doFilter(request, response);
     }
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
