@@ -1,5 +1,6 @@
 package org.azdev.barber_book.services;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.azdev.barber_book.dtos.ServiceRequest;
 import org.azdev.barber_book.models.AppointmentService;
@@ -7,6 +8,7 @@ import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.repositories.AppointmentServiceRepository;
 import org.azdev.barber_book.repositories.TenantRepository;
 import org.azdev.barber_book.security.SecurityUtils;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,4 +41,14 @@ public class CatalogService {
         UUID tenantId = securityUtils.getCurrentTenantId();
         return appointmentServiceRepository.findAllByTenantId(tenantId);
     }
+
+    public void deleteService(UUID id) {
+        AppointmentService service = appointmentServiceRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Service not found"));
+        if (!service.getTenant().getId().equals(securityUtils.getCurrentTenantId())) {
+            throw new AccessDeniedException("Access denied");
+        }
+        appointmentServiceRepository.delete(service);
+    }
+
 }
