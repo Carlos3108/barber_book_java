@@ -5,6 +5,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import org.azdev.barber_book.security.AuthenticatedUserPrincipal;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -25,7 +27,30 @@ public class JwtService {
     private Long expiration;
 
     private SecretKey getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secret);
+        byte[] keyBytes;
+        try {
+            // Try standard Base64 decode (common when SECRET is provided as Base64)
+            keyBytes = Decoders.BASE64.decode(secret);
+        } catch (io.jsonwebtoken.io.DecodingException ex1) {
+            try {
+                // Try URL-safe Base64 (may contain '-' and '_')
+                keyBytes = Decoders.BASE64URL.decode(secret);
+            } catch (io.jsonwebtoken.io.DecodingException ex2) {
+                // Fallback: treat secret as a raw string and use its UTF-8 bytes
+                keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+            }
+        }
+
+        // Ensure the key has sufficient length for HMAC (at least 256 bits for HS256)
+        if (keyBytes.length < 32) {
+            try {
+                MessageDigest sha = MessageDigest.getInstance("SHA-256");
+                keyBytes = sha.digest(keyBytes);
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to generate signing key", e);
+            }
+        }
+
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
