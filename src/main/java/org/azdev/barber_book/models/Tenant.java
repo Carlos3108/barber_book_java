@@ -19,10 +19,7 @@ public class Tenant extends BaseEntity {
     private String name;
 
     @Column(unique = true, nullable = false, length = 100)
-    private String slug; // Gerado via SlugService (ex: cortes-do-ze-x92b)
-
-    @Column(name = "owner_email", nullable = false)
-    private String ownerEmail;
+    private String slug;
 
     @Column(name = "trial_expires_at", nullable = false)
     private LocalDateTime trialExpiresAt;

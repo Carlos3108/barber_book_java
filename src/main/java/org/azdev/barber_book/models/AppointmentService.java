@@ -14,6 +14,9 @@ public class AppointmentService extends BaseEntity {
     private String name;
 
     @Column(nullable = false)
+    private boolean status = true;
+
+    @Column(nullable = false)
     private BigDecimal price;
 
     @Column(name = "duration_minutes", nullable = false)
