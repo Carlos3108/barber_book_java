@@ -31,7 +31,7 @@ class AppointmentServiceRepositoryTest {
         appointmentServiceRepository.save(buildService("Barba", tenantA));
         appointmentServiceRepository.save(buildService("Progressiva", tenantB));
 
-        List<AppointmentService> services = appointmentServiceRepository.findAllByTenantId(tenantA.getId());
+        List<AppointmentService> services = appointmentServiceRepository.findAllByTenantIdAndActiveTrue(tenantA.getId());
 
         assertThat(services).hasSize(2);
         assertThat(services).extracting(AppointmentService::getName)

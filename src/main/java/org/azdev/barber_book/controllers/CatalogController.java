@@ -51,4 +51,9 @@ public class CatalogController {
         catalogService.deleteService(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<AppointmentService> update(@PathVariable UUID id, @Valid @RequestBody ServiceRequest request){
+        return ResponseEntity.ok(catalogService.updateService(id, request));
+    }
 }

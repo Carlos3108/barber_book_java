@@ -13,8 +13,8 @@ public class AppointmentService extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "active", nullable = false)
-    private boolean status = true;
+    @Column(nullable = false)
+    private boolean active = true;
 
     @Column(nullable = false)
     private BigDecimal price;
