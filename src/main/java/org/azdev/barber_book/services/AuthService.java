@@ -36,7 +36,6 @@ public class AuthService {
         Tenant tenant = new Tenant();
         tenant.setName(request.shopName());
         tenant.setSlug(slugService.generateSlug(request.shopName()));
-        tenant.setOwnerEmail(request.email());
         tenant.setTrialExpiresAt(LocalDateTime.now().plusDays(30));
         tenant.setPlanStatus("TRIAL");
         tenant = tenantRepository.save(tenant);

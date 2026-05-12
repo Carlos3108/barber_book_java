@@ -13,8 +13,6 @@ public interface TenantRepository extends JpaRepository<Tenant, UUID> {
 
     Optional<Tenant> findBySlug(String slug);
 
-    boolean existsByOwnerEmail(String email);
-
     @Query("SELECT t FROM Tenant t WHERE t.planStatus IN ('TRIAL', 'ACTIVE') AND t.trialExpiresAt < :currentDate")
     List<Tenant> findExpiredTenants(@Param("currentDate") LocalDateTime currentDate);
 }

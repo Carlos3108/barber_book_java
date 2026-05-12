@@ -5,25 +5,24 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, UUID> {
     List<Appointment> findByTenantIdAndStartTimeBetweenOrderByStartTimeAsc(
             UUID tenantId,
-            LocalDateTime startOfDay,
-            LocalDateTime endOfDay
+            OffsetDateTime startOfDay,
+            OffsetDateTime endOfDay
     );
 
-    // 🛡️ Prevenção de Double Booking (Verifica se já existe agendamento que conflita com o horário desejado)
     @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Appointment a " +
             "WHERE a.tenant.id = :tenantId " +
             "AND a.status = 'CONFIRMED' " +
             "AND ((a.startTime < :newEndTime AND a.endTime > :newStartTime))")
     boolean hasOverlappingAppointment(
             @Param("tenantId") UUID tenantId,
-            @Param("newStartTime") LocalDateTime newStartTime,
-            @Param("newEndTime") LocalDateTime newEndTime
+            @Param("newStartTime") OffsetDateTime newStartTime,
+            @Param("newEndTime") OffsetDateTime newEndTime
     );
 }
