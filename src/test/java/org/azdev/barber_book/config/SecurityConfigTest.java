@@ -22,7 +22,7 @@ class SecurityConfigTest {
         CorsConfiguration cors = source.getCorsConfiguration(new MockHttpServletRequest());
 
         assertThat(cors).isNotNull();
-        assertThat(cors.getAllowedOrigins()).contains("http://localhost:3000");
+        assertThat(cors.getAllowedOriginPatterns()).contains("*");
         assertThat(cors.getAllowedMethods()).contains("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS");
         assertThat(cors.getAllowCredentials()).isTrue();
     }

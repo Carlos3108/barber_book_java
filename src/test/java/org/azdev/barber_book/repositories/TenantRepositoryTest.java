@@ -19,17 +19,15 @@ class TenantRepositoryTest {
     private TenantRepository tenantRepository;
 
     @Test
-    void findBySlugAndExistsByOwnerEmailWorkAsExpected() {
+    void findBySlugWorksAsExpected() {
         Tenant tenant = new Tenant();
         tenant.setName("Barber X");
         tenant.setSlug("barber-x");
-        tenant.setOwnerEmail("owner@barberx.com");
         tenant.setTrialExpiresAt(LocalDateTime.now().plusDays(1));
         tenant.setPlanStatus("TRIAL");
         tenantRepository.save(tenant);
 
         assertThat(tenantRepository.findBySlug("barber-x")).isPresent();
-        assertThat(tenantRepository.existsByOwnerEmail("owner@barberx.com")).isTrue();
     }
 
     @Test
@@ -49,7 +47,6 @@ class TenantRepositoryTest {
         Tenant tenant = new Tenant();
         tenant.setName("Shop " + slug);
         tenant.setSlug(slug);
-        tenant.setOwnerEmail(slug + "@test.com");
         tenant.setPlanStatus(status);
         tenant.setTrialExpiresAt(expiresAt);
         return tenant;

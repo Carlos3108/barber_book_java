@@ -42,7 +42,6 @@ class AppointmentServiceRepositoryTest {
         Tenant tenant = new Tenant();
         tenant.setName("Shop " + slug);
         tenant.setSlug(slug);
-        tenant.setOwnerEmail(slug + "@test.com");
         tenant.setPlanStatus("TRIAL");
         tenant.setTrialExpiresAt(LocalDateTime.now().plusDays(15));
         return tenant;
