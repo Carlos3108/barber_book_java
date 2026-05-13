@@ -53,7 +53,14 @@ public class CatalogController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AppointmentService> update(@PathVariable UUID id, @Valid @RequestBody ServiceRequest request){
-        return ResponseEntity.ok(catalogService.updateService(id, request));
+    public ResponseEntity<ServiceResponse> update(@PathVariable UUID id, @Valid @RequestBody ServiceRequest request){
+        AppointmentService updatedService = catalogService.updateService(id, request);
+        return ResponseEntity.ok(new ServiceResponse(
+                updatedService.getId(),
+                updatedService.getName(),
+                updatedService.getPrice(),
+                updatedService.getDurationMinutes(),
+                updatedService.getTenant().getId()
+        ));
     }
 }
