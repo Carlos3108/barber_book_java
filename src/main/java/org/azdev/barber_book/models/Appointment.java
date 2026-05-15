@@ -32,6 +32,10 @@ public class Appointment extends BaseEntity{
     @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "professional_id", nullable = false)
+    private Professional professional;
+
     @Column(nullable = false)
     private String status = "CONFIRMED"; // CONFIRMED, CANCELLED
 }
