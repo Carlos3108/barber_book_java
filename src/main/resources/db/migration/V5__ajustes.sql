@@ -1,0 +1,16 @@
+
+ALTER TABLE appointments
+ALTER
+COLUMN client_phone TYPE VARCHAR(255) USING (client_phone::VARCHAR(255));
+
+ALTER TABLE tenants
+ALTER
+COLUMN plan_status TYPE VARCHAR(255) USING (plan_status::VARCHAR(255));
+
+ALTER TABLE services
+ALTER
+COLUMN price TYPE DECIMAL USING (price::DECIMAL);
+
+ALTER TABLE appointments
+ALTER
+COLUMN status TYPE VARCHAR(255) USING (status::VARCHAR(255));

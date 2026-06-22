@@ -12,6 +12,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -97,7 +99,7 @@ public class CatalogService {
         service.setName(dto.name());
         service.setPrice(dto.price());
         service.setDurationMinutes(dto.durationMinutes());
-        service.setUpdatedAt(java.time.LocalDateTime.now());
+        service.setUpdatedAt(OffsetDateTime.from(LocalDateTime.now()));
 
         return appointmentServiceRepository.save(service);
     }

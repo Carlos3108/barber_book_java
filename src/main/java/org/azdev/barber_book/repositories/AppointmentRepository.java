@@ -25,4 +25,19 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("newStartTime") OffsetDateTime newStartTime,
             @Param("newEndTime") OffsetDateTime newEndTime
     );
+
+    @Query("""
+        SELECT a FROM Appointment a 
+        WHERE a.professional.id = :professionalId 
+        AND a.status = 'CONFIRMED'
+        AND a.startTime >= :startOfDay 
+        AND a.startTime <= :endOfDay
+    """)
+    List<Appointment> findDailyAgendaForProfessional(
+            @Param("professionalId") UUID professionalId,
+            @Param("startOfDay") OffsetDateTime startOfDay,
+            @Param("endOfDay") OffsetDateTime endOfDay
+    );
+
+    List<Appointment> findAllByTenantId(UUID tenantId);
 }
