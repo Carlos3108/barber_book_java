@@ -2,7 +2,7 @@ package org.azdev.barber_book.models;
 
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -11,7 +11,7 @@ class BaseEntityTest {
     @Test
     void preUpdateRefreshesUpdatedAt() {
         TestEntity entity = new TestEntity();
-        LocalDateTime before = LocalDateTime.now().minusMinutes(5);
+        OffsetDateTime before = OffsetDateTime.now().minusMinutes(5);
         entity.setUpdatedAt(before);
 
         entity.preUpdate();
