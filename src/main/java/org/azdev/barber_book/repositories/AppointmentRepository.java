@@ -16,21 +16,23 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             OffsetDateTime endOfDay
     );
 
-    @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Appointment a " +
-            "WHERE a.tenant.id = :tenantId " +
-            "AND a.status = 'CONFIRMED' " +
-            "AND ((a.startTime < :newEndTime AND a.endTime > :newStartTime))")
+    @Query("""
+        SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Appointment a
+        WHERE a.professional.id = :professionalId
+        AND a.status = 'CONFIRMED'
+        AND (a.startTime < :newEndTime AND a.endTime > :newStartTime)
+    """)
     boolean hasOverlappingAppointment(
-            @Param("tenantId") UUID tenantId,
+            @Param("professionalId") UUID professionalId,
             @Param("newStartTime") OffsetDateTime newStartTime,
             @Param("newEndTime") OffsetDateTime newEndTime
     );
 
     @Query("""
-        SELECT a FROM Appointment a 
-        WHERE a.professional.id = :professionalId 
+        SELECT a FROM Appointment a
+        WHERE a.professional.id = :professionalId
         AND a.status = 'CONFIRMED'
-        AND a.startTime >= :startOfDay 
+        AND a.startTime >= :startOfDay
         AND a.startTime <= :endOfDay
     """)
     List<Appointment> findDailyAgendaForProfessional(
