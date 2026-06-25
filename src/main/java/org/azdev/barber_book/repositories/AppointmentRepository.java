@@ -41,5 +41,4 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("endOfDay") OffsetDateTime endOfDay
     );
 
-    List<Appointment> findAllByTenantId(UUID tenantId);
 }

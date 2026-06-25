@@ -135,9 +135,15 @@ public class AppointmentServiceService {
     }
 
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> listAppointmentsByTenant() {
+    public List<AppointmentResponse> listAppointmentsByTenant(LocalDate startDate, LocalDate endDate) {
         UUID tenantId = securityUtils.getCurrentTenantId();
-        List<Appointment> appointments = appointmentRepository.findAllByTenantId(tenantId);
+        ZoneId zoneId = ZoneId.of("America/Sao_Paulo");
+
+        OffsetDateTime start = startDate.atStartOfDay(zoneId).toOffsetDateTime();
+        OffsetDateTime end = endDate.atTime(23, 59, 59).atZone(zoneId).toOffsetDateTime();
+
+        List<Appointment> appointments = appointmentRepository
+                .findByTenantIdAndStartTimeBetweenOrderByStartTimeAsc(tenantId, start, end);
         return appointments.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -155,6 +161,21 @@ public class AppointmentServiceService {
         }
 
         appointment.setStatus("CANCELLED");
+        appointmentRepository.save(appointment);
+    }
+
+    @Transactional
+    public void completeAppointment(UUID appointmentId) {
+        UUID tenantId = securityUtils.getCurrentTenantId();
+
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Agendamento não encontrado."));
+
+        if (!appointment.getTenant().getId().equals(tenantId)) {
+            throw new SecurityException("Você não tem permissão para alterar este agendamento.");
+        }
+
+        appointment.setStatus("COMPLETED");
         appointmentRepository.save(appointment);
     }
 }

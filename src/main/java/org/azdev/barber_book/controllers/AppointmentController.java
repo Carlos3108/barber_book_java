@@ -45,8 +45,10 @@ public class AppointmentController {
 
     @GetMapping
     @Operation(summary = "Listar agendamentos do tenant")
-    public ResponseEntity<List<AppointmentResponse>> listAppointments() {
-        List<AppointmentResponse> appointments = appointmentServiceService.listAppointmentsByTenant();
+    public ResponseEntity<List<AppointmentResponse>> listAppointments(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        List<AppointmentResponse> appointments = appointmentServiceService.listAppointmentsByTenant(startDate, endDate);
         return ResponseEntity.ok(appointments);
     }
 
@@ -54,6 +56,13 @@ public class AppointmentController {
     @Operation(summary = "Cancelar um agendamento")
     public ResponseEntity<Void> cancelAppointment(@PathVariable UUID id) {
         appointmentServiceService.cancelAppointment(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/complete")
+    @Operation(summary = "Marcar agendamento como concluído")
+    public ResponseEntity<Void> completeAppointment(@PathVariable UUID id) {
+        appointmentServiceService.completeAppointment(id);
         return ResponseEntity.noContent().build();
     }
 }
