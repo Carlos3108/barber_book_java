@@ -1,6 +1,7 @@
 package org.azdev.barber_book.repositories;
 
-import org.azdev.barber_book.models.AppointmentService;
+import org.azdev.barber_book.dtos.CatalogResponse;
+import org.azdev.barber_book.models.Catalog;
 import org.azdev.barber_book.models.Tenant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,10 +16,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Transactional
-class AppointmentServiceRepositoryTest {
+class CatalogRepositoryTest {
 
     @Autowired
-    private AppointmentServiceRepository appointmentServiceRepository;
+    private CatalogRepository catalogRepository;
     @Autowired
     private TenantRepository tenantRepository;
 
@@ -27,14 +28,14 @@ class AppointmentServiceRepositoryTest {
         Tenant tenantA = tenantRepository.save(buildTenant("tenant-a-services"));
         Tenant tenantB = tenantRepository.save(buildTenant("tenant-b-services"));
 
-        appointmentServiceRepository.save(buildService("Corte", tenantA));
-        appointmentServiceRepository.save(buildService("Barba", tenantA));
-        appointmentServiceRepository.save(buildService("Progressiva", tenantB));
+        catalogRepository.save(buildService("Corte", tenantA));
+        catalogRepository.save(buildService("Barba", tenantA));
+        catalogRepository.save(buildService("Progressiva", tenantB));
 
-        List<AppointmentService> services = appointmentServiceRepository.findAllByTenantIdAndActiveTrue(tenantA.getId());
+        List<Catalog> services = catalogRepository.findAllByTenantIdAndActiveTrue(tenantA.getId());
 
         assertThat(services).hasSize(2);
-        assertThat(services).extracting(AppointmentService::getName)
+        assertThat(services).extracting(Catalog::getName)
                 .containsExactlyInAnyOrder("Corte", "Barba");
     }
 
@@ -47,8 +48,8 @@ class AppointmentServiceRepositoryTest {
         return tenant;
     }
 
-    private AppointmentService buildService(String name, Tenant tenant) {
-        AppointmentService service = new AppointmentService();
+    private Catalog buildService(String name, Tenant tenant) {
+        Catalog service = new Catalog();
         service.setName(name);
         service.setPrice(new BigDecimal("30.00"));
         service.setDurationMinutes(30);

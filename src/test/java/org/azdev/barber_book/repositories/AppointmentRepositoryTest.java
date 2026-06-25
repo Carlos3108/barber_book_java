@@ -1,7 +1,7 @@
 package org.azdev.barber_book.repositories;
 
 import org.azdev.barber_book.models.Appointment;
-import org.azdev.barber_book.models.AppointmentService;
+import org.azdev.barber_book.models.Catalog;
 import org.azdev.barber_book.models.Tenant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,14 +23,14 @@ class AppointmentRepositoryTest {
     @Autowired
     private AppointmentRepository appointmentRepository;
     @Autowired
-    private AppointmentServiceRepository appointmentServiceRepository;
+    private CatalogRepository catalogRepository;
     @Autowired
     private TenantRepository tenantRepository;
 
     @Test
     void hasOverlappingAppointmentReturnsTrueForConflictingConfirmedSlots() {
         Tenant tenant = saveTenant("tenant-1");
-        AppointmentService service = saveService(tenant, "Corte");
+        Catalog service = saveService(tenant, "Corte");
         OffsetDateTime start = LocalDateTime.of(2026, 4, 28, 10, 0).atOffset(ZoneOffset.UTC);
         OffsetDateTime end = LocalDateTime.of(2026, 4, 28, 11, 0).atOffset(ZoneOffset.UTC);
         saveAppointment(tenant, service, start, end);
@@ -47,7 +47,7 @@ class AppointmentRepositoryTest {
     @Test
     void findByTenantAndRangeReturnsSortedAppointments() {
         Tenant tenant = saveTenant("tenant-2");
-        AppointmentService service = saveService(tenant, "Barba");
+        Catalog service = saveService(tenant, "Barba");
         OffsetDateTime start1 = LocalDateTime.of(2026, 4, 28, 14, 0).atOffset(ZoneOffset.UTC);
         OffsetDateTime end1 = LocalDateTime.of(2026, 4, 28, 15, 0).atOffset(ZoneOffset.UTC);
         OffsetDateTime start2 = LocalDateTime.of(2026, 4, 28, 9, 0).atOffset(ZoneOffset.UTC);
@@ -75,16 +75,16 @@ class AppointmentRepositoryTest {
         return tenantRepository.save(tenant);
     }
 
-    private AppointmentService saveService(Tenant tenant, String name) {
-        AppointmentService service = new AppointmentService();
+    private Catalog saveService(Tenant tenant, String name) {
+        Catalog service = new Catalog();
         service.setTenant(tenant);
         service.setName(name);
         service.setPrice(new BigDecimal("25.00"));
         service.setDurationMinutes(30);
-        return appointmentServiceRepository.save(service);
+        return catalogRepository.save(service);
     }
 
-    private void saveAppointment(Tenant tenant, AppointmentService service, OffsetDateTime start, OffsetDateTime end) {
+    private void saveAppointment(Tenant tenant, Catalog service, OffsetDateTime start, OffsetDateTime end) {
         Appointment appointment = new Appointment();
         appointment.setTenant(tenant);
         appointment.setService(service);

@@ -4,14 +4,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.azdev.barber_book.dtos.AppointmentRequest;
 import org.azdev.barber_book.dtos.AppointmentResponse;
-import org.azdev.barber_book.models.AppointmentService;
+import org.azdev.barber_book.dtos.CatalogResponse;
+import org.azdev.barber_book.dtos.ProfessionalResponse;
 import org.azdev.barber_book.models.Tenant;
-import org.azdev.barber_book.repositories.AppointmentRepository;
-import org.azdev.barber_book.repositories.AppointmentServiceRepository;
+import org.azdev.barber_book.repositories.CatalogRepository;
 import org.azdev.barber_book.repositories.ProfessionalRepository;
 import org.azdev.barber_book.repositories.TenantRepository;
-import org.azdev.barber_book.services.AppointmentServiceService;
-import org.azdev.barber_book.services.ProfessionalService;
+import org.azdev.barber_book.services.AppointmentService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,9 +27,9 @@ import java.util.UUID;
 public class PublicController {
 
     private final TenantRepository tenantRepository;
-    private final AppointmentServiceRepository serviceRepository;
+    private final CatalogRepository serviceRepository;
     private final ProfessionalRepository professionalRepository;
-    private final AppointmentServiceService appointmentServiceService;
+    private final AppointmentService appointmentService;
 
     @GetMapping("/barbershop/{slug}")
     public ResponseEntity<?> getBarbershopInfo(@PathVariable String slug) {
@@ -45,7 +44,15 @@ public class PublicController {
     public ResponseEntity<?> getBarbershopServices(@PathVariable String slug) {
         Tenant tenant = tenantRepository.findBySlug(slug).orElseThrow(() -> new IllegalArgumentException("Barbearia não encontrada."));
 
-        var services = serviceRepository.findAllByTenantIdAndActiveTrue(tenant.getId());
+        List<CatalogResponse> services = serviceRepository.findAllByTenantIdAndActiveTrue(tenant.getId())
+                .stream()
+                .map(catalog -> new CatalogResponse(
+                        catalog.getId(),
+                        catalog.getName(),
+                        catalog.getPrice(),
+                        catalog.getDurationMinutes(),
+                        catalog.isActive()
+                )).toList();
         return ResponseEntity.ok(services);
     }
 
@@ -53,7 +60,13 @@ public class PublicController {
     public ResponseEntity<?> getBarbershopProfessionals(@PathVariable String slug) {
         Tenant tenant = tenantRepository.findBySlug(slug).orElseThrow(() -> new IllegalArgumentException("Barbearia não encontrada."));
 
-        var professionals = professionalRepository.findAllByTenantIdAndActiveTrue(tenant.getId());
+        List<ProfessionalResponse> professionals = professionalRepository.findAllByTenantIdAndActiveTrue(tenant.getId())
+                .stream()
+                .map(professional -> new ProfessionalResponse(
+                        professional.getId(),
+                        professional.getName(),
+                        professional.isActive()
+                )).toList();
         return ResponseEntity.ok(professionals);
     }
 
@@ -62,7 +75,7 @@ public class PublicController {
             @PathVariable UUID professionalId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        List<String> slots = appointmentServiceService.getAvailableSlots(professionalId, date);
+        List<String> slots = appointmentService.getAvailableSlots(professionalId, date);
         return ResponseEntity.ok(slots);
     }
 
@@ -70,7 +83,7 @@ public class PublicController {
     public ResponseEntity<AppointmentResponse> createAppointment(
             @Valid @RequestBody AppointmentRequest request
     ) {
-        AppointmentResponse response = appointmentServiceService.createAppointment(request);
+        AppointmentResponse response = appointmentService.createAppointment(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

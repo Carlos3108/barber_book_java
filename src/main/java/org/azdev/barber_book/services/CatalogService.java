@@ -2,10 +2,11 @@ package org.azdev.barber_book.services;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.azdev.barber_book.dtos.ServiceRequest;
-import org.azdev.barber_book.models.AppointmentService;
+import org.azdev.barber_book.dtos.CatalogRequest;
+import org.azdev.barber_book.dtos.CatalogResponse;
+import org.azdev.barber_book.models.Catalog;
 import org.azdev.barber_book.models.Tenant;
-import org.azdev.barber_book.repositories.AppointmentServiceRepository;
+import org.azdev.barber_book.repositories.CatalogRepository;
 import org.azdev.barber_book.repositories.TenantRepository;
 import org.azdev.barber_book.security.SecurityUtils;
 import org.springframework.security.access.AccessDeniedException;
@@ -17,23 +18,24 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class CatalogService {
-    private final AppointmentServiceRepository appointmentServiceRepository;
+    private final CatalogRepository catalogRepository;
     private final TenantRepository tenantRepository;
     private final SecurityUtils securityUtils;
 
     @Transactional
-    public AppointmentService createService(ServiceRequest dto) {
+    public CatalogResponse createService(CatalogRequest dto) {
         UUID tenantId = securityUtils.getCurrentTenantId();
 
-        Optional<AppointmentService> existingServiceOpt = appointmentServiceRepository
+        Optional<Catalog> existingServiceOpt = catalogRepository
                 .findByTenantIdAndNameIgnoreCase(tenantId, dto.name());
 
         if (existingServiceOpt.isPresent()) {
-            AppointmentService existingService = existingServiceOpt.get();
+            Catalog existingService = existingServiceOpt.get();
 
             if (existingService.isActive()) {
                 throw new IllegalArgumentException("Você já possui um serviço ativo com o nome: " + dto.name());
@@ -41,54 +43,50 @@ public class CatalogService {
                 existingService.setPrice(dto.price());
                 existingService.setDurationMinutes(dto.durationMinutes());
                 existingService.setActive(true);
-                return appointmentServiceRepository.save(existingService);
+
+                Catalog savedExisting = catalogRepository.save(existingService);
+                return mapToResponse(savedExisting);
             }
         }
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new EntityNotFoundException("Barbearia não encontrada."));
 
-        Tenant tenantRef = tenantRepository.getReferenceById(tenantId);
-        AppointmentService newService = new AppointmentService();
-        newService.setName(dto.name());
-        newService.setPrice(dto.price());
-        newService.setDurationMinutes(dto.durationMinutes());
-        newService.setActive(true);
-        newService.setTenant(tenantRef);
+        Catalog newCatalog = new Catalog();
+        newCatalog.setName(dto.name());
+        newCatalog.setPrice(dto.price());
+        newCatalog.setDurationMinutes(dto.durationMinutes());
+        newCatalog.setActive(true);
+        newCatalog.setTenant(tenant);
 
-        return appointmentServiceRepository.save(newService);
+        Catalog savedService = catalogRepository.save(newCatalog);
+
+        return mapToResponse(savedService);
     }
 
     @Transactional(readOnly = true)
-    public List<AppointmentService> listMyServices() {
+    public List<CatalogResponse> listMyServices() {
         UUID tenantId = securityUtils.getCurrentTenantId();
-        return appointmentServiceRepository.findAllByTenantIdAndActiveTrue(tenantId);
+        return catalogRepository.findAllByTenantIdAndActiveTrue(tenantId).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     public void deleteService(UUID id) {
         UUID tenantId = securityUtils.getCurrentTenantId();
 
-        AppointmentService service = appointmentServiceRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Serviço não encontrado."));
+        Catalog catalog = getCatalogAndValidateOwner(id, tenantId);
 
-        if (!service.getTenant().getId().equals(tenantId)) {
-            throw new AccessDeniedException("Você não tem permissão para deletar este serviço.");
-        }
-
-        service.setActive(false);
-
-        appointmentServiceRepository.save(service);
+        catalog.setActive(false);
+        catalogRepository.save(catalog);
     }
 
-    public AppointmentService updateService (UUID id, ServiceRequest dto) {
+    public CatalogResponse updateService (UUID id, CatalogRequest dto) {
         UUID tenantId = securityUtils.getCurrentTenantId();
 
-        AppointmentService service = appointmentServiceRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Serviço não encontrado."));
+        Catalog catalog = getCatalogAndValidateOwner(id, tenantId);
 
-        if (!service.getTenant().getId().equals(tenantId)) {
-            throw new AccessDeniedException("Você não tem permissão para editar este serviço.");
-        }
-
-        if (!service.getName().equalsIgnoreCase(dto.name())) {
-            Optional<AppointmentService> existingServiceOpt = appointmentServiceRepository
+        if (!catalog.getName().equalsIgnoreCase(dto.name())) {
+            Optional<Catalog> existingServiceOpt = catalogRepository
                     .findByTenantIdAndNameIgnoreCase(tenantId, dto.name());
 
             if (existingServiceOpt.isPresent() && existingServiceOpt.get().isActive()) {
@@ -96,12 +94,32 @@ public class CatalogService {
             }
         }
 
-        service.setName(dto.name());
-        service.setPrice(dto.price());
-        service.setDurationMinutes(dto.durationMinutes());
-        service.setUpdatedAt(OffsetDateTime.from(LocalDateTime.now()));
+        catalog.setName(dto.name());
+        catalog.setPrice(dto.price());
+        catalog.setDurationMinutes(dto.durationMinutes());
+        catalog.setUpdatedAt(OffsetDateTime.from(LocalDateTime.now()));
 
-        return appointmentServiceRepository.save(service);
+        return mapToResponse(catalogRepository.save(catalog));
     }
 
+    private CatalogResponse mapToResponse(Catalog catalog){
+        return new CatalogResponse(
+                catalog.getId(),
+                catalog.getName(),
+                catalog.getPrice(),
+                catalog.getDurationMinutes(),
+                catalog.isActive()
+        );
+    }
+
+    private Catalog getCatalogAndValidateOwner(UUID catalogId, UUID tenantId){
+        Catalog catalog = catalogRepository.findById(catalogId)
+                .orElseThrow(() -> new IllegalArgumentException("Serviço não encontrado."));
+
+        if (!catalog.getTenant().getId().equals(tenantId)) {
+            throw new AccessDeniedException("Acesso negado: Você não tem permissão para alterar este serviço.");
+        }
+
+        return catalog;
+    }
 }

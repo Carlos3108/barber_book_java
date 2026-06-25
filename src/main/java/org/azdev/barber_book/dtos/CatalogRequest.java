@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 
-public record ServiceRequest(
+public record CatalogRequest(
         @NotBlank(message = "O nome do serviço é obrigatório.")
         String name,
 

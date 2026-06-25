@@ -7,12 +7,12 @@ import org.azdev.barber_book.models.Appointment;
 import org.azdev.barber_book.models.Professional;
 import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.repositories.AppointmentRepository;
-import org.azdev.barber_book.repositories.AppointmentServiceRepository;
+import org.azdev.barber_book.repositories.CatalogRepository;
 import org.azdev.barber_book.repositories.ProfessionalRepository;
 import org.azdev.barber_book.security.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.azdev.barber_book.models.AppointmentService;
+import org.azdev.barber_book.models.Catalog;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -25,17 +25,17 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class AppointmentServiceService {
+public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
-    private final AppointmentServiceRepository serviceRepository;
+    private final CatalogRepository serviceRepository;
     private final ProfessionalRepository professionalRepository;
     private final SecurityUtils securityUtils;
 
     @Transactional
     public AppointmentResponse createAppointment(AppointmentRequest dto) {
 
-        AppointmentService catalogService = serviceRepository.findById(dto.serviceId())
+        Catalog catalogService = serviceRepository.findById(dto.serviceId())
                 .orElseThrow(() -> new IllegalArgumentException("Serviço não encontrado."));
 
         if (!catalogService.isActive()) {

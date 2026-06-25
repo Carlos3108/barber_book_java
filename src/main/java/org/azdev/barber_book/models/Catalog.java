@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "services")
 @Getter @Setter
-public class AppointmentService extends BaseEntity {
+public class Catalog extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
