@@ -1,5 +1,7 @@
 package org.azdev.barber_book.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.azdev.barber_book.dtos.AppointmentRequest;
@@ -24,6 +26,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/public")
 @RequiredArgsConstructor
+@Tag(name = "Público", description = "Endpoints públicos para clientes da barbearia")
 public class PublicController {
 
     private final TenantRepository tenantRepository;
@@ -32,6 +35,7 @@ public class PublicController {
     private final AppointmentService appointmentService;
 
     @GetMapping("/barbershop/{slug}")
+    @Operation(summary = "Busca informações básicas de uma barbearia pelo seu slug")
     public ResponseEntity<?> getBarbershopInfo(@PathVariable String slug) {
         Tenant tenant = tenantRepository.findBySlug(slug).orElseThrow(() -> new IllegalArgumentException("Barbearia não encontrada."));
 
@@ -41,6 +45,7 @@ public class PublicController {
     }
 
     @GetMapping("/barbershop/{slug}/services")
+    @Operation(summary = "Lista os serviços ativos de uma barbearia")
     public ResponseEntity<?> getBarbershopServices(@PathVariable String slug) {
         Tenant tenant = tenantRepository.findBySlug(slug).orElseThrow(() -> new IllegalArgumentException("Barbearia não encontrada."));
 
@@ -57,6 +62,7 @@ public class PublicController {
     }
 
     @GetMapping("/barbershop/{slug}/professionals")
+    @Operation(summary = "Lista os profissionais ativos de uma barbearia")
     public ResponseEntity<?> getBarbershopProfessionals(@PathVariable String slug) {
         Tenant tenant = tenantRepository.findBySlug(slug).orElseThrow(() -> new IllegalArgumentException("Barbearia não encontrada."));
 
@@ -71,6 +77,7 @@ public class PublicController {
     }
 
     @GetMapping("/professionals/{professionalId}/slots")
+    @Operation(summary = "Retorna os horários disponíveis de um profissional para uma data específica")
     public ResponseEntity<List<String>> getProfessionalSlots(
             @PathVariable UUID professionalId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
@@ -80,6 +87,7 @@ public class PublicController {
     }
 
     @PostMapping("/appointments")
+    @Operation(summary = "Cria um novo agendamento para um cliente")
     public ResponseEntity<AppointmentResponse> createAppointment(
             @Valid @RequestBody AppointmentRequest request
     ) {
