@@ -73,7 +73,7 @@ public class AppointmentService {
         appointment.setClientPhone(dto.clientPhone());
         appointment.setStartTime(startTime);
         appointment.setEndTime(endTime);
-        appointment.setStatus("CONFIRMED");
+        appointment.setStatus("PENDING");
         appointment.setService(catalogService);
         appointment.setProfessional(professional);
         appointment.setTenant(tenant);

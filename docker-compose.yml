@@ -8,9 +8,9 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/barber_book
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_DATASOURCE_URL=${DB_URL:-jdbc:postgresql://db:5432/barber_book}
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-root}
       - API_SECURITY_TOKEN_SECRET=${API_SECURITY_TOKEN_SECRET:-change_me}
     depends_on:
       - db
@@ -19,13 +19,12 @@ services:
   db:
     image: postgres:18.3
     environment:
-      POSTGRES_DB: barber_book
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: root
+      POSTGRES_DB: ${DB_NAME:-barber_book}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
 volumes:
   postgres_data:
-
