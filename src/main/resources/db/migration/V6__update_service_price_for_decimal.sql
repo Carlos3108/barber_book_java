@@ -1,0 +1,3 @@
+ALTER TABLE services
+ALTER
+COLUMN price TYPE DECIMAL USING (price::DECIMAL);
