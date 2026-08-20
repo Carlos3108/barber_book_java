@@ -49,7 +49,7 @@ public class AuthService {
 
         var jwtToken = jwtService.generateToken(AuthenticatedUserPrincipal.from(user));
 
-        return new AuthenticationResponse(jwtToken);
+        return new AuthenticationResponse(jwtToken, tenant.getName(), tenant.getSlug());
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request){
@@ -65,6 +65,6 @@ public class AuthService {
 
         var jwtToken = jwtService.generateToken(AuthenticatedUserPrincipal.from(user));
 
-        return new AuthenticationResponse(jwtToken);
+        return new AuthenticationResponse(jwtToken, user.getTenant().getName(), user.getTenant().getSlug());
     }
 }
