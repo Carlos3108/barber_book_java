@@ -9,11 +9,8 @@ import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.repositories.CatalogRepository;
 import org.azdev.barber_book.repositories.TenantRepository;
 import org.azdev.barber_book.security.SecurityUtils;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -31,36 +28,11 @@ public class CatalogService {
     public CatalogResponse createService(CatalogRequest dto) {
         UUID tenantId = securityUtils.getCurrentTenantId();
 
-        Optional<Catalog> existingServiceOpt = catalogRepository
-                .findByTenantIdAndNameIgnoreCase(tenantId, dto.name());
+        Catalog catalogToSave = handleSmartUpsert(dto, tenantId);
 
-        if (existingServiceOpt.isPresent()) {
-            Catalog existingService = existingServiceOpt.get();
+        catalogToSave = catalogRepository.save(catalogToSave);
 
-            if (existingService.isActive()) {
-                throw new IllegalArgumentException("Você já possui um serviço ativo com o nome: " + dto.name());
-            } else {
-                existingService.setPrice(dto.price());
-                existingService.setDurationMinutes(dto.durationMinutes());
-                existingService.setActive(true);
-
-                Catalog savedExisting = catalogRepository.save(existingService);
-                return mapToResponse(savedExisting);
-            }
-        }
-        Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new EntityNotFoundException("Barbearia não encontrada."));
-
-        Catalog newCatalog = new Catalog();
-        newCatalog.setName(dto.name());
-        newCatalog.setPrice(dto.price());
-        newCatalog.setDurationMinutes(dto.durationMinutes());
-        newCatalog.setActive(true);
-        newCatalog.setTenant(tenant);
-
-        Catalog savedService = catalogRepository.save(newCatalog);
-
-        return mapToResponse(savedService);
+        return mapToResponse(catalogToSave);
     }
 
     @Transactional(readOnly = true)
@@ -97,7 +69,7 @@ public class CatalogService {
         catalog.setName(dto.name());
         catalog.setPrice(dto.price());
         catalog.setDurationMinutes(dto.durationMinutes());
-        catalog.setUpdatedAt(OffsetDateTime.from(LocalDateTime.now()));
+        catalog.setUpdatedAt(OffsetDateTime.now());
 
         return mapToResponse(catalogRepository.save(catalog));
     }
@@ -113,13 +85,37 @@ public class CatalogService {
     }
 
     private Catalog getCatalogAndValidateOwner(UUID catalogId, UUID tenantId){
-        Catalog catalog = catalogRepository.findById(catalogId)
-                .orElseThrow(() -> new IllegalArgumentException("Serviço não encontrado."));
 
-        if (!catalog.getTenant().getId().equals(tenantId)) {
-            throw new AccessDeniedException("Acesso negado: Você não tem permissão para alterar este serviço.");
+        return catalogRepository.findByIdAndTenantId(catalogId, tenantId)
+                .orElseThrow(() -> new EntityNotFoundException("Serviço não encontrado ou não pertence ao seu estabelecimento."));
+    }
+
+    private Catalog handleSmartUpsert(CatalogRequest request, UUID tenantId) {
+        Optional<Catalog> existingOpt = catalogRepository.findByTenantIdAndNameIgnoreCase(tenantId, request.name());
+
+        if (existingOpt.isPresent()) {
+            Catalog existingCatalog = existingOpt.get();
+
+            if (existingCatalog.isActive()) {
+                throw new IllegalArgumentException("Já existe um serviço ativo cadastrado com este nome.");
+            }
+
+            existingCatalog.setActive(true);
+            existingCatalog.setPrice(request.price());
+            existingCatalog.setDurationMinutes(request.durationMinutes());
+
+            return existingCatalog;
         }
 
-        return catalog;
+        Catalog newCatalog = new Catalog();
+        newCatalog.setName(request.name());
+        newCatalog.setPrice(request.price());
+        newCatalog.setDurationMinutes(request.durationMinutes());
+        newCatalog.setActive(true);
+
+        Tenant tenant = tenantRepository.getReferenceById(tenantId);
+        newCatalog.setTenant(tenant);
+
+        return newCatalog;
     }
 }

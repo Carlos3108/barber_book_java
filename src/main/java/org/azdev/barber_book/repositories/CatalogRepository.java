@@ -14,4 +14,5 @@ public interface CatalogRepository extends JpaRepository<Catalog, UUID> {
 
     Optional<Catalog> findByTenantIdAndNameIgnoreCase(UUID tenantId, String name);
 
+    Optional<Catalog> findByIdAndTenantId(UUID id, UUID tenantId);
 }

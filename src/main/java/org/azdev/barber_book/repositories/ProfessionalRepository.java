@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface ProfessionalRepository extends JpaRepository<Professional, UUID> {
     List<Professional> findAllByTenantIdAndActiveTrue(UUID tenantId);
     Optional<Professional> findByTenantIdAndNameIgnoreCase(UUID tenantId, String name);
+    Optional<Professional> findByIdAndTenantId(UUID id, UUID tenantId);
 }
