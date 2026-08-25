@@ -8,11 +8,10 @@ import org.azdev.barber_book.dtos.AppointmentRequest;
 import org.azdev.barber_book.dtos.AppointmentResponse;
 import org.azdev.barber_book.dtos.CatalogResponse;
 import org.azdev.barber_book.dtos.ProfessionalResponse;
-import org.azdev.barber_book.models.Tenant;
-import org.azdev.barber_book.repositories.CatalogRepository;
-import org.azdev.barber_book.repositories.ProfessionalRepository;
-import org.azdev.barber_book.repositories.TenantRepository;
 import org.azdev.barber_book.services.AppointmentService;
+import org.azdev.barber_book.services.CatalogService;
+import org.azdev.barber_book.services.ProfessionalService;
+import org.azdev.barber_book.services.TenantService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,51 +28,28 @@ import java.util.UUID;
 @Tag(name = "Público", description = "Endpoints públicos para clientes da barbearia")
 public class PublicController {
 
-    private final TenantRepository tenantRepository;
-    private final CatalogRepository serviceRepository;
-    private final ProfessionalRepository professionalRepository;
+    // O Controller SÓ conversa com os Services! Zero Repositories aqui.
+    private final TenantService tenantService;
+    private final CatalogService catalogService;
+    private final ProfessionalService professionalService;
     private final AppointmentService appointmentService;
 
     @GetMapping("/barbershop/{slug}")
     @Operation(summary = "Busca informações básicas de uma barbearia pelo seu slug")
-    public ResponseEntity<?> getBarbershopInfo(@PathVariable String slug) {
-        Tenant tenant = tenantRepository.findBySlug(slug).orElseThrow(() -> new IllegalArgumentException("Barbearia não encontrada."));
-
-        return ResponseEntity.ok(Map.of(
-                "id", tenant.getId(),
-                "name", tenant.getName()));
+    public ResponseEntity<Map<String, String>> getBarbershopInfo(@PathVariable String slug) {
+        return ResponseEntity.ok(tenantService.getPublicInfoBySlug(slug));
     }
 
     @GetMapping("/barbershop/{slug}/services")
     @Operation(summary = "Lista os serviços ativos de uma barbearia")
-    public ResponseEntity<?> getBarbershopServices(@PathVariable String slug) {
-        Tenant tenant = tenantRepository.findBySlug(slug).orElseThrow(() -> new IllegalArgumentException("Barbearia não encontrada."));
-
-        List<CatalogResponse> services = serviceRepository.findAllByTenantIdAndActiveTrue(tenant.getId())
-                .stream()
-                .map(catalog -> new CatalogResponse(
-                        catalog.getId(),
-                        catalog.getName(),
-                        catalog.getPrice(),
-                        catalog.getDurationMinutes(),
-                        catalog.isActive()
-                )).toList();
-        return ResponseEntity.ok(services);
+    public ResponseEntity<List<CatalogResponse>> getBarbershopServices(@PathVariable String slug) {
+        return ResponseEntity.ok(catalogService.getPublicServicesBySlug(slug));
     }
 
     @GetMapping("/barbershop/{slug}/professionals")
     @Operation(summary = "Lista os profissionais ativos de uma barbearia")
-    public ResponseEntity<?> getBarbershopProfessionals(@PathVariable String slug) {
-        Tenant tenant = tenantRepository.findBySlug(slug).orElseThrow(() -> new IllegalArgumentException("Barbearia não encontrada."));
-
-        List<ProfessionalResponse> professionals = professionalRepository.findAllByTenantIdAndActiveTrue(tenant.getId())
-                .stream()
-                .map(professional -> new ProfessionalResponse(
-                        professional.getId(),
-                        professional.getName(),
-                        professional.isActive()
-                )).toList();
-        return ResponseEntity.ok(professionals);
+    public ResponseEntity<List<ProfessionalResponse>> getBarbershopProfessionals(@PathVariable String slug) {
+        return ResponseEntity.ok(professionalService.getPublicProfessionalsBySlug(slug));
     }
 
     @GetMapping("/professionals/{professionalId}/slots")

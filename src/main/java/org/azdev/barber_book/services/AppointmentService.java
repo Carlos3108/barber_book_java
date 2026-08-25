@@ -113,7 +113,7 @@ public class AppointmentService {
 
         List<String> availableSlots = new ArrayList<>();
         LocalTime currentSlot = workStart;
-        OffsetDateTime now = OffsetDateTime.now(zoneId);
+        OffsetDateTime now = OffsetDateTime.now(zoneId).plusMinutes(30);
 
         while (currentSlot.isBefore(workEnd)) {
 

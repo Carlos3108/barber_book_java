@@ -1,6 +1,5 @@
 package org.azdev.barber_book.repositories;
 
-import org.azdev.barber_book.dtos.CatalogResponse;
 import org.azdev.barber_book.models.Catalog;
 import org.springframework.data.jpa.repository.JpaRepository;
 

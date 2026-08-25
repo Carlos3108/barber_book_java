@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Getter @Setter
@@ -22,7 +23,7 @@ public class Tenant extends BaseEntity {
     private String slug;
 
     @Column(name = "trial_expires_at", nullable = false)
-    private LocalDateTime trialExpiresAt;
+    private OffsetDateTime trialExpiresAt;
 
     @Column(name = "plan_status", nullable = false)
     private String planStatus = "TRIAL"; // TRIAL, ACTIVE, SUSPENDED

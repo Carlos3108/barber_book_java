@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, UUID> {
+
     List<Appointment> findByTenantIdAndStartTimeBetweenOrderByStartTimeAsc(
             UUID tenantId,
             OffsetDateTime startOfDay,
@@ -19,7 +20,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     @Query("""
         SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Appointment a
         WHERE a.professional.id = :professionalId
-        AND a.status = 'CONFIRMED'
+        AND a.status IN ('PENDING', 'CONFIRMED', 'COMPLETED')
         AND (a.startTime < :newEndTime AND a.endTime > :newStartTime)
     """)
     boolean hasOverlappingAppointment(
@@ -31,7 +32,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     @Query("""
         SELECT a FROM Appointment a
         WHERE a.professional.id = :professionalId
-        AND a.status = 'CONFIRMED'
+        AND a.status IN ('PENDING', 'CONFIRMED', 'COMPLETED')
         AND a.startTime >= :startOfDay
         AND a.startTime <= :endOfDay
     """)
@@ -40,5 +41,4 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("startOfDay") OffsetDateTime startOfDay,
             @Param("endOfDay") OffsetDateTime endOfDay
     );
-
 }

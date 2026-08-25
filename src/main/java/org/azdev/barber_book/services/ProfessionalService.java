@@ -1,9 +1,11 @@
 package org.azdev.barber_book.services;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.azdev.barber_book.dtos.ProfessionalRequest;
 import org.azdev.barber_book.dtos.ProfessionalResponse;
 import org.azdev.barber_book.models.Professional;
+import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.repositories.ProfessionalRepository;
 import org.azdev.barber_book.repositories.TenantRepository;
 import org.azdev.barber_book.security.SecurityUtils;
@@ -56,6 +58,15 @@ public class ProfessionalService {
 
         professional.setActive(false);
         repository.save(professional);
+    }
+
+    public List<ProfessionalResponse> getPublicProfessionalsBySlug(String slug) {
+        Tenant tenant = tenantRepository.findBySlug(slug)
+                .orElseThrow(() -> new EntityNotFoundException("Barbearia não encontrada."));
+
+        return repository.findAllByTenantIdAndActiveTrue(tenant.getId()).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     private Professional getProfessionalAndValidateOwnership(UUID professionalId, UUID tenantId) {

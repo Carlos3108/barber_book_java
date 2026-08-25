@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -36,7 +37,7 @@ public class AuthService {
         Tenant tenant = new Tenant();
         tenant.setName(request.shopName());
         tenant.setSlug(slugService.generateSlug(request.shopName()));
-        tenant.setTrialExpiresAt(LocalDateTime.now().plusDays(30));
+        tenant.setTrialExpiresAt(OffsetDateTime.now().plusDays(30));
         tenant.setPlanStatus("TRIAL");
         tenant = tenantRepository.save(tenant);
 

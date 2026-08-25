@@ -90,6 +90,15 @@ public class CatalogService {
                 .orElseThrow(() -> new EntityNotFoundException("Serviço não encontrado ou não pertence ao seu estabelecimento."));
     }
 
+    public List<CatalogResponse> getPublicServicesBySlug(String slug) {
+        Tenant tenant = tenantRepository.findBySlug(slug)
+                .orElseThrow(() -> new EntityNotFoundException("Barbearia não encontrada."));
+
+        return catalogRepository.findAllByTenantIdAndActiveTrue(tenant.getId()).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     private Catalog handleSmartUpsert(CatalogRequest request, UUID tenantId) {
         Optional<Catalog> existingOpt = catalogRepository.findByTenantIdAndNameIgnoreCase(tenantId, request.name());
 
