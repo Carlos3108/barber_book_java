@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 
 @Entity
@@ -27,4 +28,13 @@ public class Tenant extends BaseEntity {
 
     @Column(name = "plan_status", nullable = false)
     private String planStatus = "TRIAL"; // TRIAL, ACTIVE, SUSPENDED
+
+    @Column(name = "opening_time", nullable = false)
+    private LocalTime openingTime = LocalTime.of(9, 0);
+
+    @Column(name = "closing_time", nullable = false)
+    private LocalTime closingTime = LocalTime.of(18, 0);
+
+    @Column(name = "timezone", nullable = false)
+    private String timezone = "America/Sao_Paulo";
 }
