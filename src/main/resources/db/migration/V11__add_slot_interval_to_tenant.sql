@@ -1,0 +1,2 @@
+
+ALTER TABLE tenants ADD COLUMN slot_interval INT DEFAULT 30;

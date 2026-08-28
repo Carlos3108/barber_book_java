@@ -37,9 +37,10 @@ public class AppointmentController {
     @Operation(summary = "Verificar horários disponíveis do profissional")
     public ResponseEntity<List<String>> getAvailableSlots(
             @PathVariable UUID professionalId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam UUID serviceId) {
         
-        List<String> availableSlots = appointmentService.getAvailableSlots(professionalId, date);
+        List<String> availableSlots = appointmentService.getAvailableSlots(professionalId, date, serviceId);
         return ResponseEntity.ok(availableSlots);
     }
 

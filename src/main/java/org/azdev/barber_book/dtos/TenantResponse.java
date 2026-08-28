@@ -6,6 +6,7 @@ public record TenantResponse(
         String name,
         LocalTime openingTime,
         LocalTime closingTime,
-        String timezone
+        String timezone,
+        Integer slotInterval
 ) {
 }

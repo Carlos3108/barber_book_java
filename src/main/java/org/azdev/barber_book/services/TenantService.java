@@ -49,6 +49,7 @@ public class TenantService {
         tenant.setOpeningTime(request.openingTime());
         tenant.setClosingTime(request.closingTime());
         tenant.setTimezone(request.timezone());
+        tenant.setSlotInterval(request.slotInterval());
 
         tenantRepository.save(tenant);
     }
@@ -63,7 +64,8 @@ public class TenantService {
                 tenant.getName(),
                 tenant.getOpeningTime(),
                 tenant.getClosingTime(),
-                tenant.getTimezone()
+                tenant.getTimezone(),
+                tenant.getSlotInterval()
         );
     }
 }

@@ -9,6 +9,7 @@ import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.repositories.AppointmentRepository;
 import org.azdev.barber_book.repositories.CatalogRepository;
 import org.azdev.barber_book.repositories.ProfessionalRepository;
+import org.azdev.barber_book.repositories.TenantRepository;
 import org.azdev.barber_book.security.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,7 @@ public class AppointmentService {
     private final CatalogRepository serviceRepository;
     private final ProfessionalRepository professionalRepository;
     private final SecurityUtils securityUtils;
+    private final TenantRepository tenantRepository;
 
     @Transactional
     public AppointmentResponse createAppointment(AppointmentRequest dto) {
@@ -97,9 +99,19 @@ public class AppointmentService {
         );
     }
 
-    public List<String> getAvailableSlots(UUID professionalId, LocalDate date) {
+    public List<String> getAvailableSlots(UUID professionalId, LocalDate date, UUID serviceId) {
 
-        ZoneId zoneId = ZoneId.of("America/Sao_Paulo");
+        Catalog service = serviceRepository.findById(serviceId)
+                .orElseThrow(() -> new IllegalArgumentException("Serviço não encontrado."));
+        int serviceDuration = service.getDurationMinutes();
+
+        Professional professional = professionalRepository.findById(professionalId)
+                .orElseThrow(() -> new IllegalArgumentException("Profissional não encontrado."));
+
+        Tenant tenant = professional.getTenant();
+        ZoneId zoneId = ZoneId.of(tenant.getTimezone());
+        LocalTime workStart = tenant.getOpeningTime();
+        LocalTime workEnd = tenant.getClosingTime();
 
         OffsetDateTime startOfDay = date.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime endOfDay = date.atTime(23, 59, 59).atZone(zoneId).toOffsetDateTime();
@@ -107,28 +119,26 @@ public class AppointmentService {
         List<Appointment> dailyAppointments = appointmentRepository
                 .findDailyAgendaForProfessional(professionalId, startOfDay, endOfDay);
 
-        LocalTime workStart = LocalTime.of(9, 0);
-        LocalTime workEnd = LocalTime.of(18, 0);
-        int slotDurationMinutes = 30;
-
+        int gridStepMinutes = tenant.getSlotInterval();
         List<String> availableSlots = new ArrayList<>();
         LocalTime currentSlot = workStart;
-        OffsetDateTime now = OffsetDateTime.now(zoneId).plusMinutes(30);
 
-        while (currentSlot.isBefore(workEnd)) {
+        OffsetDateTime nowComMargem = OffsetDateTime.now(zoneId).plusMinutes(30);
+
+        while (!currentSlot.plusMinutes(serviceDuration).isAfter(workEnd)) {
 
             OffsetDateTime slotStart = date.atTime(currentSlot).atZone(zoneId).toOffsetDateTime();
-            OffsetDateTime slotEnd = slotStart.plusMinutes(slotDurationMinutes);
+            OffsetDateTime slotEnd = slotStart.plusMinutes(serviceDuration);
 
             boolean isTaken = dailyAppointments.stream().anyMatch(appt ->
                     slotStart.isBefore(appt.getEndTime()) && slotEnd.isAfter(appt.getStartTime())
             );
 
-            if (!isTaken && slotStart.isAfter(now)) {
+            if (!isTaken && slotStart.isAfter(nowComMargem)) {
                 availableSlots.add(currentSlot.toString());
             }
 
-            currentSlot = currentSlot.plusMinutes(slotDurationMinutes);
+            currentSlot = currentSlot.plusMinutes(gridStepMinutes);
         }
 
         return availableSlots;
@@ -137,13 +147,18 @@ public class AppointmentService {
     @Transactional(readOnly = true)
     public List<AppointmentResponse> listAppointmentsByTenant(LocalDate startDate, LocalDate endDate) {
         UUID tenantId = securityUtils.getCurrentTenantId();
-        ZoneId zoneId = ZoneId.of("America/Sao_Paulo");
+
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("Barbearia não encontrada."));
+
+        ZoneId zoneId = ZoneId.of(tenant.getTimezone());
 
         OffsetDateTime start = startDate.atStartOfDay(zoneId).toOffsetDateTime();
         OffsetDateTime end = endDate.atTime(23, 59, 59).atZone(zoneId).toOffsetDateTime();
 
         List<Appointment> appointments = appointmentRepository
                 .findByTenantIdAndStartTimeBetweenOrderByStartTimeAsc(tenantId, start, end);
+
         return appointments.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
