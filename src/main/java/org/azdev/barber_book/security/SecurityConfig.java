@@ -32,9 +32,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(
-                        "/api/auth/**",
-                        "/api/tenants/register",
-                        "/api/public/**",
+                        "/api/v1/auth/**",
+                        "/api/v1/tenants/register",
+                        "/api/v1/public/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html",
                         "/v3/api-docs/**",
