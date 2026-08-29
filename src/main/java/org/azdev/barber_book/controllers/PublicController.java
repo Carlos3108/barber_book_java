@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/public")
+@RequestMapping("/api/v1/public")
 @RequiredArgsConstructor
 @Tag(name = "Público", description = "Endpoints públicos para clientes da barbearia")
 public class PublicController {
@@ -64,7 +64,7 @@ public class PublicController {
     }
 
     @PostMapping("/appointments")
-    @Operation(summary = "Cria um novo agendamento para um cliente")
+    @Operation(summary = "Cria um novo agendamento para um cliente (público)")
     public ResponseEntity<AppointmentResponse> createAppointment(
             @Valid @RequestBody AppointmentRequest request
     ) {

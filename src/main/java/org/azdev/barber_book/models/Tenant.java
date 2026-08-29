@@ -39,6 +39,6 @@ public class Tenant extends BaseEntity {
     private String timezone = "America/Sao_Paulo";
 
     @Column(name = "slot_interval", nullable = false)
-    private int slotInterval = 30;
+    private Integer slotInterval = 30;
 
 }

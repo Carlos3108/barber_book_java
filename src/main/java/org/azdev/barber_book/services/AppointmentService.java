@@ -6,6 +6,7 @@ import org.azdev.barber_book.dtos.AppointmentResponse;
 import org.azdev.barber_book.models.Appointment;
 import org.azdev.barber_book.models.Professional;
 import org.azdev.barber_book.models.Tenant;
+import org.azdev.barber_book.models.enums.AppointmentStatus;
 import org.azdev.barber_book.repositories.AppointmentRepository;
 import org.azdev.barber_book.repositories.CatalogRepository;
 import org.azdev.barber_book.repositories.ProfessionalRepository;
@@ -63,7 +64,8 @@ public class AppointmentService {
         boolean isSlotTaken = appointmentRepository.hasOverlappingAppointment(
                 professional.getId(),
                 startTime,
-                endTime
+                endTime,
+                List.of(AppointmentStatus.PENDING, AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED, AppointmentStatus.CONFIRMED)
         );
 
         if (isSlotTaken) {
@@ -75,7 +77,7 @@ public class AppointmentService {
         appointment.setClientPhone(dto.clientPhone());
         appointment.setStartTime(startTime);
         appointment.setEndTime(endTime);
-        appointment.setStatus("PENDING");
+        appointment.setStatus(AppointmentStatus.PENDING);
         appointment.setService(catalogService);
         appointment.setProfessional(professional);
         appointment.setTenant(tenant);
@@ -117,7 +119,11 @@ public class AppointmentService {
         OffsetDateTime endOfDay = date.atTime(23, 59, 59).atZone(zoneId).toOffsetDateTime();
 
         List<Appointment> dailyAppointments = appointmentRepository
-                .findDailyAgendaForProfessional(professionalId, startOfDay, endOfDay);
+                .findDailyAgendaForProfessional(
+                        professionalId,
+                        startOfDay,
+                        endOfDay,
+                        List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED, AppointmentStatus.COMPLETED));
 
         int gridStepMinutes = tenant.getSlotInterval();
         List<String> availableSlots = new ArrayList<>();
@@ -175,7 +181,7 @@ public class AppointmentService {
             throw new SecurityException("Você não tem permissão para cancelar este agendamento.");
         }
 
-        appointment.setStatus("CANCELLED");
+        appointment.setStatus(AppointmentStatus.CANCELLED);
         appointmentRepository.save(appointment);
     }
 
@@ -190,7 +196,7 @@ public class AppointmentService {
             throw new SecurityException("Você não tem permissão para alterar este agendamento.");
         }
 
-        appointment.setStatus("COMPLETED");
+        appointment.setStatus(AppointmentStatus.COMPLETED);
         appointmentRepository.save(appointment);
     }
 }

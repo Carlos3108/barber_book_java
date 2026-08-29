@@ -3,13 +3,16 @@ package org.azdev.barber_book.dtos;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public record AppointmentRequest(@NotBlank(message = "O nome do cliente é obrigatório")
+public record AppointmentRequest(
+                                 @NotBlank(message = "O nome do cliente é obrigatório")
                                  String clientName,
 
+                                 @Pattern(regexp = "^\\d{10,11}$", message = "Formato inválido")
                                  @NotBlank(message = "O telefone do cliente é obrigatório")
                                  String clientPhone,
 

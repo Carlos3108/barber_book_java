@@ -3,6 +3,7 @@ package org.azdev.barber_book.models;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.azdev.barber_book.models.enums.AppointmentStatus;
 
 import java.time.OffsetDateTime;
 
@@ -35,6 +36,7 @@ public class Appointment extends BaseEntity{
     @JoinColumn(name = "professional_id", nullable = false)
     private Professional professional;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status = "CONFIRMED"; // CONFIRMED, CANCELLED
+    private AppointmentStatus status = AppointmentStatus.CONFIRMED;
 }

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/appointments")
+@RequestMapping("/api/v1/appointments")
 @RequiredArgsConstructor
 @Tag(name = "Agendamentos", description = "Gerenciamento de agendamentos")
 @SecurityRequirement(name = "bearerAuth")

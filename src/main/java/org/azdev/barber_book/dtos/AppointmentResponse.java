@@ -1,5 +1,7 @@
 package org.azdev.barber_book.dtos;
 
+import org.azdev.barber_book.models.enums.AppointmentStatus;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -9,7 +11,7 @@ public record AppointmentResponse (UUID id,
                                    String clientPhone,
                                    OffsetDateTime startTime,
                                    OffsetDateTime endTime,
-                                   String status,
+                                   AppointmentStatus status,
                                    String professionalName,
                                    String serviceName,
                                    BigDecimal servicePrice)

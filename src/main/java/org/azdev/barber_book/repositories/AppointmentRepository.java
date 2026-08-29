@@ -1,6 +1,7 @@
 package org.azdev.barber_book.repositories;
 
 import org.azdev.barber_book.models.Appointment;
+import org.azdev.barber_book.models.enums.AppointmentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,25 +21,27 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     @Query("""
         SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Appointment a
         WHERE a.professional.id = :professionalId
-        AND a.status IN ('PENDING', 'CONFIRMED', 'COMPLETED')
+        AND a.status IN :activeStatuses 
         AND (a.startTime < :newEndTime AND a.endTime > :newStartTime)
     """)
     boolean hasOverlappingAppointment(
             @Param("professionalId") UUID professionalId,
             @Param("newStartTime") OffsetDateTime newStartTime,
-            @Param("newEndTime") OffsetDateTime newEndTime
+            @Param("newEndTime") OffsetDateTime newEndTime,
+            @Param("activeStatuses") List<AppointmentStatus> activeStatuses
     );
 
     @Query("""
         SELECT a FROM Appointment a
         WHERE a.professional.id = :professionalId
-        AND a.status IN ('PENDING', 'CONFIRMED', 'COMPLETED')
+        AND a.status IN :activeStatuses
         AND a.startTime >= :startOfDay
         AND a.startTime <= :endOfDay
     """)
     List<Appointment> findDailyAgendaForProfessional(
             @Param("professionalId") UUID professionalId,
             @Param("startOfDay") OffsetDateTime startOfDay,
-            @Param("endOfDay") OffsetDateTime endOfDay
+            @Param("endOfDay") OffsetDateTime endOfDay,
+            @Param("activeStatuses") List<AppointmentStatus> activeStatuses
     );
 }

@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/professionals")
+@RequestMapping("/api/v1/professionals")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Profissionais", description = "Endpoints para gerenciamento dos profissionais da barbearia")
