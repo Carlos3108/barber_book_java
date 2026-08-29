@@ -66,6 +66,21 @@ public class ProfessionalService {
         professionalRepository.save(professional);
     }
 
+    @Transactional(readOnly = true)
+    public ProfessionalResponse getProfessionalById(UUID id) {
+        UUID tenantId = securityUtils.getCurrentTenantId();
+        Professional professional = getProfessionalAndValidateOwnership(id, tenantId);
+        return mapToResponse(professional);
+    }
+
+    @Transactional(readOnly = true)
+    public ProfessionalResponse getPublicProfessionalById(UUID id) {
+        Professional professional = professionalRepository.findById(id)
+                .filter(Professional::isActive)
+                .orElseThrow(() -> new EntityNotFoundException("Profissional não encontrado ou inativo."));
+        return mapToResponse(professional);
+    }
+
     public List<ProfessionalResponse> getPublicProfessionalsBySlug(String slug) {
         Tenant tenant = tenantRepository.findBySlug(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Barbearia não encontrada."));

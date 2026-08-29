@@ -43,6 +43,21 @@ public class CatalogService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public CatalogResponse getMyServiceById(UUID id) {
+        UUID tenantId = securityUtils.getCurrentTenantId();
+        Catalog catalog = getCatalogAndValidateOwner(id, tenantId);
+        return mapToResponse(catalog);
+    }
+
+    @Transactional(readOnly = true)
+    public CatalogResponse getPublicServiceById(UUID id) {
+        Catalog catalog = catalogRepository.findById(id)
+                .filter(Catalog::isActive)
+                .orElseThrow(() -> new EntityNotFoundException("Serviço não encontrado ou indisponível."));
+        return mapToResponse(catalog);
+    }
+
     public void deleteService(UUID id) {
         UUID tenantId = securityUtils.getCurrentTenantId();
 

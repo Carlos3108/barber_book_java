@@ -63,6 +63,18 @@ public class PublicController {
         return ResponseEntity.ok(slots);
     }
 
+    @GetMapping("/professionals/{id}")
+    @Operation(summary = "Busca os detalhes públicos de um profissional específico")
+    public ResponseEntity<ProfessionalResponse> getPublicProfessionalById(@PathVariable UUID id) {
+        return ResponseEntity.ok(professionalService.getPublicProfessionalById(id));
+    }
+
+    @GetMapping("/services/{id}")
+    @Operation(summary = "Busca os detalhes públicos de um serviço específico")
+    public ResponseEntity<CatalogResponse> getPublicServiceById(@PathVariable UUID id) {
+        return ResponseEntity.ok(catalogService.getPublicServiceById(id));
+    }
+
     @PostMapping("/appointments")
     @Operation(summary = "Cria um novo agendamento para um cliente (público)")
     public ResponseEntity<AppointmentResponse> createAppointment(

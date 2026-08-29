@@ -43,6 +43,12 @@ public class CatalogController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Busca os detalhes de um serviço específico do catálogo da barbearia logada")
+    public ResponseEntity<CatalogResponse> getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(catalogService.getMyServiceById(id));
+    }
+
     @PutMapping("/{id}")
     @Operation(summary = "Atualiza um serviço existente no catálogo")
     public ResponseEntity<CatalogResponse> update(@PathVariable UUID id,

@@ -39,6 +39,12 @@ public class ProfessionalController {
         return ResponseEntity.ok(professionalService.listMyProfessionals());
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Busca os detalhes de um profissional específico da barbearia logada")
+    public ResponseEntity<ProfessionalResponse> getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(professionalService.getProfessionalById(id));
+    }
+
     @PutMapping("/{id}")
     @Operation(summary = "Atualiza um profissional existente")
     public ResponseEntity<ProfessionalResponse> update(
