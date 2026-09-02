@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.azdev.barber_book.dtos.AuthenticationRequest;
 import org.azdev.barber_book.dtos.AuthenticationResponse;
 import org.azdev.barber_book.dtos.RegisterRequest;
+import org.azdev.barber_book.exception.BadRequestException;
+import org.azdev.barber_book.exception.NotFoundException;
 import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.models.User;
 import org.azdev.barber_book.security.AuthenticatedUserPrincipal;
@@ -15,7 +17,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 @Service
@@ -31,7 +32,7 @@ public class AuthService {
     @Transactional
     public AuthenticationResponse register(RegisterRequest request){
         if (userRepository.findByEmail(request.email()).isPresent()) {
-            throw new IllegalArgumentException("Este e-mail já está cadastrado");
+            throw new BadRequestException("Este e-mail já está cadastrado");
         }
 
         Tenant tenant = new Tenant();
@@ -62,7 +63,7 @@ public class AuthService {
         );
 
         var user = userRepository.findByEmail(request.email())
-                .orElseThrow();
+                .orElseThrow(() -> new NotFoundException("Usuário não encontrado."));
 
         var jwtToken = jwtService.generateToken(AuthenticatedUserPrincipal.from(user));
 

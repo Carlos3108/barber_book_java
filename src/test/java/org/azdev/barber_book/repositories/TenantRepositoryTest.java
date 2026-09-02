@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,7 +23,7 @@ class TenantRepositoryTest {
         Tenant tenant = new Tenant();
         tenant.setName("Barber X");
         tenant.setSlug("barber-x");
-        tenant.setTrialExpiresAt(LocalDateTime.now().plusDays(1));
+        tenant.setTrialExpiresAt(OffsetDateTime.now().plusDays(1));
         tenant.setPlanStatus("TRIAL");
         tenantRepository.save(tenant);
 
@@ -32,18 +32,18 @@ class TenantRepositoryTest {
 
     @Test
     void findExpiredTenantsReturnsOnlyTrialOrActiveExpiredOnes() {
-        tenantRepository.save(buildTenant("trial-expired", "TRIAL", LocalDateTime.now().minusDays(1)));
-        tenantRepository.save(buildTenant("active-expired", "ACTIVE", LocalDateTime.now().minusDays(1)));
-        tenantRepository.save(buildTenant("active-not-expired", "ACTIVE", LocalDateTime.now().plusDays(3)));
-        tenantRepository.save(buildTenant("suspended-expired", "SUSPENDED", LocalDateTime.now().minusDays(1)));
+        tenantRepository.save(buildTenant("trial-expired", "TRIAL", OffsetDateTime.now().minusDays(1)));
+        tenantRepository.save(buildTenant("active-expired", "ACTIVE", OffsetDateTime.now().minusDays(1)));
+        tenantRepository.save(buildTenant("active-not-expired", "ACTIVE", OffsetDateTime.now().plusDays(3)));
+        tenantRepository.save(buildTenant("suspended-expired", "SUSPENDED", OffsetDateTime.now().minusDays(1)));
 
-        List<Tenant> expired = tenantRepository.findExpiredTenants(LocalDateTime.now());
+        List<Tenant> expired = tenantRepository.findExpiredTenants(OffsetDateTime.now());
 
         assertThat(expired).extracting(Tenant::getSlug)
                 .containsExactlyInAnyOrder("trial-expired", "active-expired");
     }
 
-    private Tenant buildTenant(String slug, String status, LocalDateTime expiresAt) {
+    private Tenant buildTenant(String slug, String status, OffsetDateTime expiresAt) {
         Tenant tenant = new Tenant();
         tenant.setName("Shop " + slug);
         tenant.setSlug(slug);

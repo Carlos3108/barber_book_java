@@ -1,9 +1,11 @@
 package org.azdev.barber_book.services;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.azdev.barber_book.dtos.ProfessionalRequest;
 import org.azdev.barber_book.dtos.ProfessionalResponse;
+import org.azdev.barber_book.exception.BadRequestException;
+import org.azdev.barber_book.exception.NotFoundException;
+import org.azdev.barber_book.exception.UnauthorizedException;
 import org.azdev.barber_book.models.Catalog;
 import org.azdev.barber_book.models.Professional;
 import org.azdev.barber_book.models.Tenant;
@@ -77,13 +79,13 @@ public class ProfessionalService {
     public ProfessionalResponse getPublicProfessionalById(UUID id) {
         Professional professional = professionalRepository.findById(id)
                 .filter(Professional::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("Profissional não encontrado ou inativo."));
+                .orElseThrow(() -> new NotFoundException("Profissional não encontrado ou inativo."));
         return mapToResponse(professional);
     }
 
     public List<ProfessionalResponse> getPublicProfessionalsBySlug(String slug) {
         Tenant tenant = tenantRepository.findBySlug(slug)
-                .orElseThrow(() -> new EntityNotFoundException("Barbearia não encontrada."));
+                .orElseThrow(() -> new NotFoundException("Barbearia não encontrada."));
 
         return professionalRepository.findAllByTenantIdAndActiveTrue(tenant.getId()).stream()
                 .map(this::mapToResponse)
@@ -92,7 +94,7 @@ public class ProfessionalService {
 
     private Professional getProfessionalAndValidateOwnership(UUID professionalId, UUID tenantId) {
         return professionalRepository.findByIdAndTenantId(professionalId, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Profissional não encontrado ou acesso negado."));
+                .orElseThrow(() -> new UnauthorizedException("Profissional não encontrado ou acesso negado."));
     }
 
     private Professional handleSmartUpsert(ProfessionalRequest request, UUID tenantId) {
@@ -101,7 +103,7 @@ public class ProfessionalService {
         if (existingOpt.isPresent()) {
             Professional existing = existingOpt.get();
             if (existing.isActive()) {
-                throw new IllegalArgumentException("Já existe um profissional ativo com este nome.");
+                throw new BadRequestException("Já existe um profissional ativo com este nome.");
             }
 
             existing.setActive(true);
@@ -122,10 +124,21 @@ public class ProfessionalService {
 
         if (serviceIds != null && !serviceIds.isEmpty()) {
             List<Catalog> validServices = catalogRepository.findAllById(serviceIds);
+            Set<UUID> foundServiceIds = validServices.stream()
+                    .map(Catalog::getId)
+                    .collect(Collectors.toSet());
+
+            Set<UUID> missingServiceIds = serviceIds.stream()
+                    .filter(serviceId -> !foundServiceIds.contains(serviceId))
+                    .collect(Collectors.toSet());
+
+            if (!missingServiceIds.isEmpty()) {
+                throw new NotFoundException("Serviços não encontrados: " + missingServiceIds);
+            }
 
             for (Catalog service : validServices) {
                 if (!service.getTenant().getId().equals(tenantId)) {
-                    throw new SecurityException("Inconsistência: Tentativa de vincular um serviço de outra barbearia.");
+                    throw new UnauthorizedException("Inconsistência: tentativa de vincular um serviço de outra barbearia.");
                 }
                 professional.getServices().add(service);
             }

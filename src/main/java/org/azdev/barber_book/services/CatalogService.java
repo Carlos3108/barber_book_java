@@ -1,9 +1,10 @@
 package org.azdev.barber_book.services;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.azdev.barber_book.dtos.CatalogRequest;
 import org.azdev.barber_book.dtos.CatalogResponse;
+import org.azdev.barber_book.exception.BadRequestException;
+import org.azdev.barber_book.exception.NotFoundException;
 import org.azdev.barber_book.models.Catalog;
 import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.repositories.CatalogRepository;
@@ -54,7 +55,7 @@ public class CatalogService {
     public CatalogResponse getPublicServiceById(UUID id) {
         Catalog catalog = catalogRepository.findById(id)
                 .filter(Catalog::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("Serviço não encontrado ou indisponível."));
+                .orElseThrow(() -> new NotFoundException("Serviço não encontrado ou indisponível."));
         return mapToResponse(catalog);
     }
 
@@ -77,7 +78,7 @@ public class CatalogService {
                     .findByTenantIdAndNameIgnoreCase(tenantId, dto.name());
 
             if (existingServiceOpt.isPresent() && existingServiceOpt.get().isActive()) {
-                throw new IllegalArgumentException("Você já possui um serviço ativo com o nome: " + dto.name());
+                throw new BadRequestException("Você já possui um serviço ativo com o nome: " + dto.name());
             }
         }
 
@@ -102,12 +103,12 @@ public class CatalogService {
     private Catalog getCatalogAndValidateOwner(UUID catalogId, UUID tenantId){
 
         return catalogRepository.findByIdAndTenantId(catalogId, tenantId)
-                .orElseThrow(() -> new EntityNotFoundException("Serviço não encontrado ou não pertence ao seu estabelecimento."));
+                .orElseThrow(() -> new NotFoundException("Serviço não encontrado ou não pertence ao seu estabelecimento."));
     }
 
     public List<CatalogResponse> getPublicServicesBySlug(String slug) {
         Tenant tenant = tenantRepository.findBySlug(slug)
-                .orElseThrow(() -> new EntityNotFoundException("Barbearia não encontrada."));
+                .orElseThrow(() -> new NotFoundException("Barbearia não encontrada."));
 
         return catalogRepository.findAllByTenantIdAndActiveTrue(tenant.getId()).stream()
                 .map(this::mapToResponse)
@@ -121,7 +122,7 @@ public class CatalogService {
             Catalog existingCatalog = existingOpt.get();
 
             if (existingCatalog.isActive()) {
-                throw new IllegalArgumentException("Já existe um serviço ativo cadastrado com este nome.");
+                throw new BadRequestException("Já existe um serviço ativo cadastrado com este nome.");
             }
 
             existingCatalog.setActive(true);

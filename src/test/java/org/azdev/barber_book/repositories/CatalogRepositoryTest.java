@@ -9,7 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +44,7 @@ class CatalogRepositoryTest {
         tenant.setName("Shop " + slug);
         tenant.setSlug(slug);
         tenant.setPlanStatus("TRIAL");
-        tenant.setTrialExpiresAt(LocalDateTime.now().plusDays(15));
+        tenant.setTrialExpiresAt(OffsetDateTime.now().plusDays(15));
         return tenant;
     }
 

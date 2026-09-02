@@ -34,9 +34,9 @@ class AuthControllerTest {
 
     @Test
     void registerReturnsToken() throws Exception {
-        when(authService.register(any())).thenReturn(new AuthenticationResponse("register-token"));
+        when(authService.register(any())).thenReturn(new AuthenticationResponse("register-token", "shop", "shop-slug"));
 
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new RegisterPayload("shop", "owner", "mail@test.com", "1234"))))
                 .andExpect(status().isOk())
@@ -45,9 +45,9 @@ class AuthControllerTest {
 
     @Test
     void loginReturnsToken() throws Exception {
-        when(authService.authenticate(any())).thenReturn(new AuthenticationResponse("login-token"));
+        when(authService.authenticate(any())).thenReturn(new AuthenticationResponse("login-token", "shop", "shop-slug"));
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new LoginPayload("mail@test.com", "1234"))))
                 .andExpect(status().isOk())

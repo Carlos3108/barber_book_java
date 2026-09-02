@@ -1,8 +1,13 @@
 package org.azdev.barber_book.services;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.azdev.barber_book.dtos.AppointmentRequest;
 import org.azdev.barber_book.dtos.AppointmentResponse;
+import org.azdev.barber_book.exception.BadRequestException;
+import org.azdev.barber_book.exception.ConflictException;
+import org.azdev.barber_book.exception.NotFoundException;
+import org.azdev.barber_book.exception.UnauthorizedException;
 import org.azdev.barber_book.models.Appointment;
 import org.azdev.barber_book.models.Professional;
 import org.azdev.barber_book.models.Tenant;
@@ -26,6 +31,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class AppointmentService {
 
@@ -34,26 +40,27 @@ public class AppointmentService {
     private final ProfessionalRepository professionalRepository;
     private final SecurityUtils securityUtils;
     private final TenantRepository tenantRepository;
+    private final AppointmentAvailabilityService appointmentAvailabilityService;
 
     @Transactional
     public AppointmentResponse createAppointment(AppointmentRequest dto) {
 
         Catalog catalogService = serviceRepository.findById(dto.serviceId())
-                .orElseThrow(() -> new IllegalArgumentException("Serviço não encontrado."));
+                .orElseThrow(() -> new NotFoundException("Serviço não encontrado."));
 
         if (!catalogService.isActive()) {
-            throw new IllegalArgumentException("Este serviço não está mais disponível.");
+            throw new BadRequestException("Este serviço não está mais disponível.");
         }
 
         Professional professional = professionalRepository.findById(dto.professionalId())
-                .orElseThrow(() -> new IllegalArgumentException("Profissional não encontrado."));
+                .orElseThrow(() -> new NotFoundException("Profissional não encontrado."));
 
         if (!professional.isActive()) {
-            throw new IllegalArgumentException("Este profissional não está disponível no momento.");
+            throw new BadRequestException("Este profissional não está disponível no momento.");
         }
 
         if (!catalogService.getTenant().getId().equals(professional.getTenant().getId())) {
-            throw new SecurityException("Inconsistência de dados: O serviço e o profissional não pertencem à mesma barbearia.");
+            throw new ConflictException("Inconsistência de dados: o serviço e o profissional não pertencem à mesma barbearia.");
         }
 
         Tenant tenant = professional.getTenant();
@@ -69,7 +76,7 @@ public class AppointmentService {
         );
 
         if (isSlotTaken) {
-            throw new IllegalStateException("Ops! Este horário acabou de ser reservado por outra pessoa. Por favor, escolha outro horário.");
+            throw new ConflictException("Ops! Este horário acabou de ser reservado por outra pessoa. Por favor, escolha outro horário.");
         }
 
         Appointment appointment = new Appointment();
@@ -101,61 +108,21 @@ public class AppointmentService {
         );
     }
 
+    @Transactional(readOnly = true)
     public List<String> getAvailableSlots(UUID professionalId, LocalDate date, UUID serviceId) {
-
-        Catalog service = serviceRepository.findById(serviceId)
-                .orElseThrow(() -> new IllegalArgumentException("Serviço não encontrado."));
-        int serviceDuration = service.getDurationMinutes();
-
-        Professional professional = professionalRepository.findById(professionalId)
-                .orElseThrow(() -> new IllegalArgumentException("Profissional não encontrado."));
-
-        Tenant tenant = professional.getTenant();
-        ZoneId zoneId = ZoneId.of(tenant.getTimezone());
-        LocalTime workStart = tenant.getOpeningTime();
-        LocalTime workEnd = tenant.getClosingTime();
-
-        OffsetDateTime startOfDay = date.atStartOfDay(zoneId).toOffsetDateTime();
-        OffsetDateTime endOfDay = date.atTime(23, 59, 59).atZone(zoneId).toOffsetDateTime();
-
-        List<Appointment> dailyAppointments = appointmentRepository
-                .findDailyAgendaForProfessional(
-                        professionalId,
-                        startOfDay,
-                        endOfDay,
-                        List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED, AppointmentStatus.COMPLETED));
-
-        int gridStepMinutes = tenant.getSlotInterval();
-        List<String> availableSlots = new ArrayList<>();
-        LocalTime currentSlot = workStart;
-
-        OffsetDateTime nowComMargem = OffsetDateTime.now(zoneId).plusMinutes(30);
-
-        while (!currentSlot.plusMinutes(serviceDuration).isAfter(workEnd)) {
-
-            OffsetDateTime slotStart = date.atTime(currentSlot).atZone(zoneId).toOffsetDateTime();
-            OffsetDateTime slotEnd = slotStart.plusMinutes(serviceDuration);
-
-            boolean isTaken = dailyAppointments.stream().anyMatch(appt ->
-                    slotStart.isBefore(appt.getEndTime()) && slotEnd.isAfter(appt.getStartTime())
-            );
-
-            if (!isTaken && slotStart.isAfter(nowComMargem)) {
-                availableSlots.add(currentSlot.toString());
-            }
-
-            currentSlot = currentSlot.plusMinutes(gridStepMinutes);
-        }
-
-        return availableSlots;
+        return appointmentAvailabilityService.getAvailableSlots(professionalId, date, serviceId);
     }
 
     @Transactional(readOnly = true)
     public List<AppointmentResponse> listAppointmentsByTenant(LocalDate startDate, LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new BadRequestException("Data inicial não pode ser maior que a data final.");
+        }
+
         UUID tenantId = securityUtils.getCurrentTenantId();
 
         Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Barbearia não encontrada."));
+                .orElseThrow(() -> new NotFoundException("Barbearia não encontrada."));
 
         ZoneId zoneId = ZoneId.of(tenant.getTimezone());
 
@@ -175,10 +142,15 @@ public class AppointmentService {
         UUID tenantId = securityUtils.getCurrentTenantId();
 
         Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Agendamento não encontrado."));
+                .orElseThrow(() -> new NotFoundException("Agendamento não encontrado."));
 
         if (!appointment.getTenant().getId().equals(tenantId)) {
-            throw new SecurityException("Você não tem permissão para cancelar este agendamento.");
+            throw new UnauthorizedException("Você não tem permissão para cancelar este agendamento.");
+        }
+
+        if (appointment.getStatus() != AppointmentStatus.PENDING
+                && appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+            throw new BadRequestException("Somente agendamentos pendentes ou confirmados podem ser cancelados.");
         }
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
@@ -190,10 +162,15 @@ public class AppointmentService {
         UUID tenantId = securityUtils.getCurrentTenantId();
 
         Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Agendamento não encontrado."));
+                .orElseThrow(() -> new NotFoundException("Agendamento não encontrado."));
 
         if (!appointment.getTenant().getId().equals(tenantId)) {
-            throw new SecurityException("Você não tem permissão para alterar este agendamento.");
+            throw new UnauthorizedException("Você não tem permissão para alterar este agendamento.");
+        }
+
+        if (appointment.getStatus() != AppointmentStatus.PENDING
+                && appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+            throw new BadRequestException("Somente agendamentos pendentes ou confirmados podem ser concluídos.");
         }
 
         appointment.setStatus(AppointmentStatus.COMPLETED);

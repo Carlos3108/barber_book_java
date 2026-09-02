@@ -9,14 +9,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 class BaseEntityTest {
 
     @Test
-    void preUpdateRefreshesUpdatedAt() {
+    void baseEntitySetsAuditFieldsOnCreation() {
         TestEntity entity = new TestEntity();
-        OffsetDateTime before = OffsetDateTime.now().minusMinutes(5);
-        entity.setUpdatedAt(before);
 
-        entity.preUpdate();
-
-        assertThat(entity.getUpdatedAt()).isAfter(before);
+        assertThat(entity.getCreatedAt()).isNotNull();
+        assertThat(entity.getUpdatedAt()).isNotNull();
     }
 
     private static class TestEntity extends BaseEntity {

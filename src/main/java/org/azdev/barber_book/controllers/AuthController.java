@@ -2,6 +2,7 @@ package org.azdev.barber_book.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.azdev.barber_book.dtos.AuthenticationRequest;
 import org.azdev.barber_book.dtos.AuthenticationResponse;
@@ -24,14 +25,14 @@ public class AuthController {
     @PostMapping("/register")
     @Operation(summary = "Registra um novo usuário e seu estabelecimento (tenant)")
     public ResponseEntity<AuthenticationResponse> register (
-            @RequestBody RegisterRequest request){
+            @Valid @RequestBody RegisterRequest request){
         return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
     @Operation(summary = "Autentica um usuário e retorna um token JWT")
     public ResponseEntity<AuthenticationResponse> authenticate (
-            @RequestBody AuthenticationRequest request){
+            @Valid @RequestBody AuthenticationRequest request){
         return ResponseEntity.ok(authService.authenticate(request));
     }
 }

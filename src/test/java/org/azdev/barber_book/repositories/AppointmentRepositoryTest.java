@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.azdev.barber_book.models.enums.AppointmentStatus;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -38,7 +40,8 @@ class AppointmentRepositoryTest {
         boolean overlapping = appointmentRepository.hasOverlappingAppointment(
                 tenant.getId(),
                 start.plusMinutes(30),
-                end.plusMinutes(30)
+                end.plusMinutes(30),
+                List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED, AppointmentStatus.COMPLETED)
         );
 
         assertThat(overlapping).isTrue();
@@ -71,7 +74,7 @@ class AppointmentRepositoryTest {
         tenant.setName("Shop " + slug);
         tenant.setSlug(slug);
         tenant.setPlanStatus("TRIAL");
-        tenant.setTrialExpiresAt(LocalDateTime.now().plusDays(10));
+        tenant.setTrialExpiresAt(OffsetDateTime.now().plusDays(10));
         return tenantRepository.save(tenant);
     }
 
@@ -92,7 +95,7 @@ class AppointmentRepositoryTest {
         appointment.setClientPhone("11999999999");
         appointment.setStartTime(start);
         appointment.setEndTime(end);
-        appointment.setStatus("CONFIRMED");
+        appointment.setStatus(AppointmentStatus.CONFIRMED);
         appointmentRepository.save(appointment);
     }
 }
