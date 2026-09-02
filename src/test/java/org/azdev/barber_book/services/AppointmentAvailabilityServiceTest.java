@@ -120,7 +120,7 @@ class AppointmentAvailabilityServiceTest {
     }
 
     @Test
-    void shouldNotReturnSlotsBlockedByExistingAppointments() {
+    void shouldNotReturnSlotsBlockedByExistingAppointmentsForSameProfessionalRegardlessOfService() {
         UUID professionalId = UUID.randomUUID();
         UUID serviceId = UUID.randomUUID();
         Clock fixedClock = Clock.fixed(
@@ -161,12 +161,58 @@ class AppointmentAvailabilityServiceTest {
                 professionalId,
                 OffsetDateTime.parse("2026-09-01T00:00:00-03:00"),
                 OffsetDateTime.parse("2026-09-01T23:59:59-03:00"),
-                List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED, AppointmentStatus.COMPLETED)
+                List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
         )).thenReturn(List.of(appointment));
 
         List<String> result = service.getAvailableSlots(professionalId, LocalDate.of(2026, 9, 1), serviceId);
 
         assertThat(result).doesNotContain("10:00:00");
+        assertThat(result).doesNotContain("10:30:00");
+    }
+
+    @Test
+    void shouldAllowSlotExactlyAtTheTimeWindowBoundary() {
+        UUID professionalId = UUID.randomUUID();
+        UUID serviceId = UUID.randomUUID();
+        Clock fixedClock = Clock.fixed(
+                OffsetDateTime.parse("2026-09-01T09:00:00-03:00").toInstant(),
+                ZoneId.of("America/Sao_Paulo")
+        );
+
+        AppointmentAvailabilityService service = new AppointmentAvailabilityService(
+                appointmentRepository,
+                catalogRepository,
+                professionalRepository,
+                fixedClock
+        );
+
+        Tenant tenant = new Tenant();
+        tenant.setId(UUID.randomUUID());
+        tenant.setTimezone("America/Sao_Paulo");
+        tenant.setOpeningTime(LocalTime.of(9, 0));
+        tenant.setClosingTime(LocalTime.of(20, 0));
+        tenant.setSlotInterval(30);
+
+        Professional professional = new Professional();
+        professional.setId(professionalId);
+        professional.setTenant(tenant);
+
+        Catalog serviceEntity = new Catalog();
+        serviceEntity.setId(serviceId);
+        serviceEntity.setDurationMinutes(30);
+
+        when(catalogRepository.findById(serviceId)).thenReturn(Optional.of(serviceEntity));
+        when(professionalRepository.findByIdWithTenant(professionalId)).thenReturn(Optional.of(professional));
+        when(appointmentRepository.findDailyAgendaForProfessional(
+                professionalId,
+                OffsetDateTime.parse("2026-09-01T00:00:00-03:00"),
+                OffsetDateTime.parse("2026-09-01T23:59:59-03:00"),
+                List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
+        )).thenReturn(List.of());
+
+        List<String> result = service.getAvailableSlots(professionalId, LocalDate.of(2026, 9, 1), serviceId);
+
+        assertThat(result).contains("09:30");
     }
 
     @Test

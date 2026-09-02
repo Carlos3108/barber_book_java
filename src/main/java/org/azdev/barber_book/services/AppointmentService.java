@@ -72,7 +72,7 @@ public class AppointmentService {
                 professional.getId(),
                 startTime,
                 endTime,
-                List.of(AppointmentStatus.PENDING, AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED, AppointmentStatus.CONFIRMED)
+                List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
         );
 
         if (isSlotTaken) {

@@ -86,7 +86,7 @@ public class AppointmentAvailabilityService {
                 professionalId,
                 startOfDay,
                 endOfDay,
-                List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED, AppointmentStatus.COMPLETED)
+                List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
         );
 
         int gridStepMinutes = tenant.getSlotInterval();
@@ -101,7 +101,7 @@ public class AppointmentAvailabilityService {
                     slotStart.isBefore(appt.getEndTime()) && slotEnd.isAfter(appt.getStartTime())
             );
 
-            if (!isTaken && slotStart.isAfter(nowWithMargin)) {
+            if (!isTaken && !slotStart.isBefore(nowWithMargin)) {
                 availableSlots.add(currentSlot.toString());
             }
 
