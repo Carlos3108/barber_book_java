@@ -82,7 +82,7 @@ class AuthServiceTest {
         when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(new User()));
 
         assertThatThrownBy(() -> authService.register(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(org.azdev.barber_book.exception.BadRequestException.class)
                 .hasMessage("Este e-mail já está cadastrado");
     }
 

@@ -45,13 +45,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             userEmail = jwtService.extractUsername(jwt);
-            log.debug("JWT extraído com sucesso. Email: {}", userEmail);
         } catch (io.jsonwebtoken.ExpiredJwtException ex) {
-            log.warn("Token JWT expirado para requisição: {}", request.getRequestURI());
+            log.warn("Token JWT expirado para requisição: {} {}", request.getMethod(), request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         } catch (Exception ex) {
-            log.error("Erro ao extrair username do JWT: {}", ex.getMessage(), ex);
+            log.warn("Token JWT inválido para requisição: {} {}", request.getMethod(), request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
@@ -60,28 +59,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             try {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-                log.debug("Usuário carregado: {}", userEmail);
-
+ 
                 if (jwtService.isTokenValid(jwt, userDetails)) {
-                    log.debug("Token válido para usuário: {}", userEmail);
-
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
                             userDetails.getAuthorities()
                     );
-
+ 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
+ 
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    log.debug("Autenticação setada no contexto para: {}", userEmail);
                 } else {
-                    log.warn("Token inválido para usuário: {}", userEmail);
+                    log.warn("Token JWT inválido para requisição: {} {}", request.getMethod(), request.getRequestURI());
                 }
             } catch (org.springframework.security.core.userdetails.UsernameNotFoundException ex) {
-                log.warn("Usuário não encontrado: {}", userEmail);
+                log.warn("Usuário do token não encontrado para requisição: {} {}", request.getMethod(), request.getRequestURI());
             } catch (Exception ex) {
-                log.error("Erro ao autenticar usuário: {}", ex.getMessage(), ex);
+                log.warn("Erro ao autenticar requisição: {} {}", request.getMethod(), request.getRequestURI());
             }
         }
         filterChain.doFilter(request, response);

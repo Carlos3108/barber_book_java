@@ -2,6 +2,7 @@ package org.azdev.barber_book.repositories;
 
 import org.azdev.barber_book.models.Appointment;
 import org.azdev.barber_book.models.Catalog;
+import org.azdev.barber_book.models.Professional;
 import org.azdev.barber_book.models.Tenant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,17 +29,20 @@ class AppointmentRepositoryTest {
     private CatalogRepository catalogRepository;
     @Autowired
     private TenantRepository tenantRepository;
+    @Autowired
+    private ProfessionalRepository professionalRepository;
 
     @Test
     void hasOverlappingAppointmentReturnsTrueForConflictingConfirmedSlots() {
         Tenant tenant = saveTenant("tenant-1");
+        Professional professional = saveProfessional(tenant, "João");
         Catalog service = saveService(tenant, "Corte");
         OffsetDateTime start = LocalDateTime.of(2026, 4, 28, 10, 0).atOffset(ZoneOffset.UTC);
         OffsetDateTime end = LocalDateTime.of(2026, 4, 28, 11, 0).atOffset(ZoneOffset.UTC);
-        saveAppointment(tenant, service, start, end);
+        saveAppointment(tenant, professional, service, start, end);
 
         boolean overlapping = appointmentRepository.hasOverlappingAppointment(
-                tenant.getId(),
+                professional.getId(),
                 start.plusMinutes(30),
                 end.plusMinutes(30),
                 List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED, AppointmentStatus.COMPLETED)
@@ -50,13 +54,14 @@ class AppointmentRepositoryTest {
     @Test
     void findByTenantAndRangeReturnsSortedAppointments() {
         Tenant tenant = saveTenant("tenant-2");
+        Professional professional = saveProfessional(tenant, "Maria");
         Catalog service = saveService(tenant, "Barba");
         OffsetDateTime start1 = LocalDateTime.of(2026, 4, 28, 14, 0).atOffset(ZoneOffset.UTC);
         OffsetDateTime end1 = LocalDateTime.of(2026, 4, 28, 15, 0).atOffset(ZoneOffset.UTC);
         OffsetDateTime start2 = LocalDateTime.of(2026, 4, 28, 9, 0).atOffset(ZoneOffset.UTC);
         OffsetDateTime end2 = LocalDateTime.of(2026, 4, 28, 10, 0).atOffset(ZoneOffset.UTC);
-        saveAppointment(tenant, service, start1, end1);
-        saveAppointment(tenant, service, start2, end2);
+        saveAppointment(tenant, professional, service, start1, end1);
+        saveAppointment(tenant, professional, service, start2, end2);
 
         List<Appointment> result = appointmentRepository.findByTenantIdAndStartTimeBetweenOrderByStartTimeAsc(
                 tenant.getId(),
@@ -87,9 +92,18 @@ class AppointmentRepositoryTest {
         return catalogRepository.save(service);
     }
 
-    private void saveAppointment(Tenant tenant, Catalog service, OffsetDateTime start, OffsetDateTime end) {
+    private Professional saveProfessional(Tenant tenant, String name) {
+        Professional professional = new Professional();
+        professional.setTenant(tenant);
+        professional.setName(name);
+        professional.setActive(true);
+        return professionalRepository.save(professional);
+    }
+
+    private void saveAppointment(Tenant tenant, Professional professional, Catalog service, OffsetDateTime start, OffsetDateTime end) {
         Appointment appointment = new Appointment();
         appointment.setTenant(tenant);
+        appointment.setProfessional(professional);
         appointment.setService(service);
         appointment.setClientName("Cliente");
         appointment.setClientPhone("11999999999");

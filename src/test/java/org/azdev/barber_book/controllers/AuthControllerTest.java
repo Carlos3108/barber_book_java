@@ -2,6 +2,8 @@ package org.azdev.barber_book.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.azdev.barber_book.dtos.AuthenticationResponse;
+import org.azdev.barber_book.exception.BadRequestException;
+import org.azdev.barber_book.exception.GlobalExceptionHandler;
 import org.azdev.barber_book.services.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +31,9 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authService)).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authService))
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
     }
 
     @Test
@@ -38,7 +42,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new RegisterPayload("shop", "owner", "mail@test.com", "1234"))))
+                        .content(objectMapper.writeValueAsString(new RegisterPayload("shop", "owner", "mail@test.com", "123456"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value("register-token"));
     }
@@ -52,6 +56,18 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(new LoginPayload("mail@test.com", "1234"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value("login-token"));
+    }
+
+    @Test
+    void loginWithInvalidCredentialsReturnsBadRequest() throws Exception {
+        when(authService.authenticate(any()))
+                .thenThrow(new BadRequestException("Credenciais inválidas."));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginPayload("mail@test.com", "wrong-pass"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Credenciais inválidas."));
     }
 
     private record RegisterPayload(String shopName, String ownerName, String email, String password) {

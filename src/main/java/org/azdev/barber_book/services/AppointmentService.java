@@ -41,6 +41,7 @@ public class AppointmentService {
     private final SecurityUtils securityUtils;
     private final TenantRepository tenantRepository;
     private final AppointmentAvailabilityService appointmentAvailabilityService;
+    private final AppointmentBusinessRules appointmentBusinessRules;
 
     @Transactional
     public AppointmentResponse createAppointment(AppointmentRequest dto) {
@@ -48,20 +49,10 @@ public class AppointmentService {
         Catalog catalogService = serviceRepository.findById(dto.serviceId())
                 .orElseThrow(() -> new NotFoundException("Serviço não encontrado."));
 
-        if (!catalogService.isActive()) {
-            throw new BadRequestException("Este serviço não está mais disponível.");
-        }
-
         Professional professional = professionalRepository.findById(dto.professionalId())
                 .orElseThrow(() -> new NotFoundException("Profissional não encontrado."));
 
-        if (!professional.isActive()) {
-            throw new BadRequestException("Este profissional não está disponível no momento.");
-        }
-
-        if (!catalogService.getTenant().getId().equals(professional.getTenant().getId())) {
-            throw new ConflictException("Inconsistência de dados: o serviço e o profissional não pertencem à mesma barbearia.");
-        }
+        appointmentBusinessRules.validateCreation(catalogService, professional);
 
         Tenant tenant = professional.getTenant();
 
@@ -115,9 +106,7 @@ public class AppointmentService {
 
     @Transactional(readOnly = true)
     public List<AppointmentResponse> listAppointmentsByTenant(LocalDate startDate, LocalDate endDate) {
-        if (startDate.isAfter(endDate)) {
-            throw new BadRequestException("Data inicial não pode ser maior que a data final.");
-        }
+        appointmentBusinessRules.validateDateRange(startDate, endDate);
 
         UUID tenantId = securityUtils.getCurrentTenantId();
 
@@ -144,14 +133,8 @@ public class AppointmentService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new NotFoundException("Agendamento não encontrado."));
 
-        if (!appointment.getTenant().getId().equals(tenantId)) {
-            throw new UnauthorizedException("Você não tem permissão para cancelar este agendamento.");
-        }
-
-        if (appointment.getStatus() != AppointmentStatus.PENDING
-                && appointment.getStatus() != AppointmentStatus.CONFIRMED) {
-            throw new BadRequestException("Somente agendamentos pendentes ou confirmados podem ser cancelados.");
-        }
+        appointmentBusinessRules.validateCancellationOwnership(tenantId, appointment.getTenant().getId());
+        appointmentBusinessRules.validateStatusForCancellation(appointment.getStatus());
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointmentRepository.save(appointment);
@@ -164,14 +147,8 @@ public class AppointmentService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new NotFoundException("Agendamento não encontrado."));
 
-        if (!appointment.getTenant().getId().equals(tenantId)) {
-            throw new UnauthorizedException("Você não tem permissão para alterar este agendamento.");
-        }
-
-        if (appointment.getStatus() != AppointmentStatus.PENDING
-                && appointment.getStatus() != AppointmentStatus.CONFIRMED) {
-            throw new BadRequestException("Somente agendamentos pendentes ou confirmados podem ser concluídos.");
-        }
+        appointmentBusinessRules.validateCompletionOwnership(tenantId, appointment.getTenant().getId());
+        appointmentBusinessRules.validateStatusForCompletion(appointment.getStatus());
 
         appointment.setStatus(AppointmentStatus.COMPLETED);
         appointmentRepository.save(appointment);

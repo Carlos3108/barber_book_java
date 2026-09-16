@@ -1,6 +1,5 @@
 package org.azdev.barber_book.security;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -22,13 +21,32 @@ import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final RateLimitingFilter rateLimitingFilter;
+    private final RequestTimingFilter requestTimingFilter;
+    private final RequestMetricsFilter requestMetricsFilter;
+
     @Value("${app.security.cors.allowed-origins:}")
-    private String allowedOrigins;
+    private String allowedOrigins = "";
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter) {
+        this(jwtAuthFilter, null, null, null);
+    }
+
+    @Autowired
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthFilter,
+            RateLimitingFilter rateLimitingFilter,
+            RequestTimingFilter requestTimingFilter,
+            RequestMetricsFilter requestMetricsFilter
+    ) {
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.rateLimitingFilter = rateLimitingFilter;
+        this.requestTimingFilter = requestTimingFilter;
+        this.requestMetricsFilter = requestMetricsFilter;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -41,6 +59,9 @@ public class SecurityConfig {
                         "/api/v1/auth/**",
                         "/api/v1/tenants/register",
                         "/api/v1/public/**",
+                        "/actuator/health",
+                        "/actuator/health/**",
+                        "/actuator/prometheus",
                         "/swagger-ui/**",
                         "/swagger-ui.html",
                         "/v3/api-docs/**",
@@ -57,6 +78,8 @@ public class SecurityConfig {
         if (rateLimitingFilter != null) {
             http.addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class);
         }
+        http.addFilterBefore(requestTimingFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(requestMetricsFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
