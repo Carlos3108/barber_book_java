@@ -1,11 +1,12 @@
 package org.azdev.barber_book.security;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
+import org.azdev.barber_book.security.ratelimit.RateLimitingFilter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final RateLimitingFilter rateLimitingFilter;
     @Value("${app.security.cors.allowed-origins:}")
     private String allowedOrigins;
 
@@ -50,8 +52,12 @@ public class SecurityConfig {
                 .permitAll()
                 .anyRequest().authenticated()
             )
-        .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        if (rateLimitingFilter != null) {
+            http.addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class);
+        }
+        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -67,6 +73,8 @@ public class SecurityConfig {
 
         if (!configuredOrigins.isEmpty()) {
             config.setAllowedOrigins(configuredOrigins);
+        } else {
+            config.setAllowedOriginPatterns(List.of("*"));
         }
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
