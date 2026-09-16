@@ -28,7 +28,6 @@ import java.util.UUID;
 @Tag(name = "Público", description = "Endpoints públicos para clientes da barbearia")
 public class PublicController {
 
-    // O Controller SÓ conversa com os Services! Zero Repositories aqui.
     private final TenantService tenantService;
     private final CatalogService catalogService;
     private final ProfessionalService professionalService;

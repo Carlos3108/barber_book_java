@@ -90,6 +90,11 @@ public class AppointmentAvailabilityService {
         );
 
         int gridStepMinutes = tenant.getSlotInterval();
+        if (gridStepMinutes <= 0) {
+            gridStepMinutes = 30;
+            log.warn("Tenant {} possui slot_interval inválido ({}). Usando fallback de 30 min.", tenant.getId(), gridStepMinutes);
+        }
+
         List<String> availableSlots = new ArrayList<>();
         LocalTime currentSlot = workStart;
 
