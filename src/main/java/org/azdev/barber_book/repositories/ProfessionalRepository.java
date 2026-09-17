@@ -14,6 +14,15 @@ public interface ProfessionalRepository extends JpaRepository<Professional, UUID
 
     @EntityGraph(attributePaths = "services")
     List<Professional> findAllByTenantIdAndActiveTrue(UUID tenantId);
+
+    @EntityGraph(attributePaths = "services")
+    @Query("""
+        SELECT p FROM Professional p
+        WHERE p.active = true
+          AND p.tenant.slug = :slug
+    """)
+    List<Professional> findAllActiveByTenantSlug(@Param("slug") String slug);
+
     Optional<Professional> findByTenantIdAndNameIgnoreCase(UUID tenantId, String name);
     Optional<Professional> findByIdAndTenantId(UUID id, UUID tenantId);
 

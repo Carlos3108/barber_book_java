@@ -39,6 +39,23 @@ class CatalogRepositoryTest {
                 .containsExactlyInAnyOrder("Corte", "Barba");
     }
 
+    @Test
+    void findAllActiveByTenantSlugReturnsOnlyActiveServicesFromTenant() {
+        Tenant tenantA = tenantRepository.save(buildTenant("tenant-a-public-services"));
+        Tenant tenantB = tenantRepository.save(buildTenant("tenant-b-public-services"));
+
+        catalogRepository.save(buildService("Corte", tenantA));
+        Catalog inactive = buildService("Barba", tenantA);
+        inactive.setActive(false);
+        catalogRepository.save(inactive);
+        catalogRepository.save(buildService("Progressiva", tenantB));
+
+        List<Catalog> services = catalogRepository.findAllActiveByTenantSlug("tenant-a-public-services");
+
+        assertThat(services).extracting(Catalog::getName)
+                .containsExactly("Corte");
+    }
+
     private Tenant buildTenant(String slug) {
         Tenant tenant = new Tenant();
         tenant.setName("Shop " + slug);
@@ -57,4 +74,3 @@ class CatalogRepositoryTest {
         return service;
     }
 }
-

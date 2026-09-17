@@ -8,7 +8,6 @@ import org.azdev.barber_book.exception.NotFoundException;
 import org.azdev.barber_book.exception.UnauthorizedException;
 import org.azdev.barber_book.models.Catalog;
 import org.azdev.barber_book.models.Professional;
-import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.repositories.CatalogRepository;
 import org.azdev.barber_book.repositories.ProfessionalRepository;
 import org.azdev.barber_book.repositories.TenantRepository;
@@ -84,12 +83,16 @@ public class ProfessionalService {
     }
 
     public List<ProfessionalResponse> getPublicProfessionalsBySlug(String slug) {
-        Tenant tenant = tenantRepository.findBySlug(slug)
-                .orElseThrow(() -> new NotFoundException("Barbearia não encontrada."));
-
-        return professionalRepository.findAllByTenantIdAndActiveTrue(tenant.getId()).stream()
+        ensureTenantExists(slug);
+        return professionalRepository.findAllActiveByTenantSlug(slug).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    private void ensureTenantExists(String slug) {
+        if (tenantRepository.findBySlug(slug).isEmpty()) {
+            throw new NotFoundException("Barbearia não encontrada.");
+        }
     }
 
     private Professional getProfessionalAndValidateOwnership(UUID professionalId, UUID tenantId) {

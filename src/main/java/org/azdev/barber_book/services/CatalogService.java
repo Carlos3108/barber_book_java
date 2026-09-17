@@ -107,12 +107,16 @@ public class CatalogService {
     }
 
     public List<CatalogResponse> getPublicServicesBySlug(String slug) {
-        Tenant tenant = tenantRepository.findBySlug(slug)
-                .orElseThrow(() -> new NotFoundException("Barbearia não encontrada."));
-
-        return catalogRepository.findAllByTenantIdAndActiveTrue(tenant.getId()).stream()
+        ensureTenantExists(slug);
+        return catalogRepository.findAllActiveByTenantSlug(slug).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    private void ensureTenantExists(String slug) {
+        if (tenantRepository.findBySlug(slug).isEmpty()) {
+            throw new NotFoundException("Barbearia não encontrada.");
+        }
     }
 
     private Catalog handleSmartUpsert(CatalogRequest request, UUID tenantId) {
