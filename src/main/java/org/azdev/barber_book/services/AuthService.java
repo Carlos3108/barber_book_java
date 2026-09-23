@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.azdev.barber_book.dtos.AuthenticationRequest;
 import org.azdev.barber_book.dtos.AuthenticationResponse;
 import org.azdev.barber_book.dtos.RegisterRequest;
+import org.azdev.barber_book.exception.BadCredentialsException;
 import org.azdev.barber_book.exception.BadRequestException;
-import org.azdev.barber_book.exception.NotFoundException;
 import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.models.User;
 import org.azdev.barber_book.security.AuthenticatedUserPrincipal;
@@ -63,7 +63,7 @@ public class AuthService {
         );
 
         var user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new NotFoundException("Usuário não encontrado."));
+                .orElseThrow(() -> new BadCredentialsException("Usuário não encontrado."));
 
         var jwtToken = jwtService.generateToken(AuthenticatedUserPrincipal.from(user));
 
