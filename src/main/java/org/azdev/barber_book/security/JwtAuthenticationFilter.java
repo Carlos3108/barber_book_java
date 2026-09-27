@@ -59,8 +59,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             try {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
- 
-                if (jwtService.isTokenValid(jwt, userDetails)) {
+
+                if (!userDetails.isAccountNonLocked() || !userDetails.isEnabled()
+                        || !userDetails.isAccountNonExpired() || !userDetails.isCredentialsNonExpired()) {
+                    log.warn("Conta bloqueada/suspensa tentou autenticar via token: {} {}", request.getMethod(), request.getRequestURI());
+                } else if (jwtService.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,

@@ -9,9 +9,9 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - SPRING_DATASOURCE_URL=${DB_URL:-jdbc:postgresql://db:5432/barber_book}
-      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME:-postgres}
-      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-root}
-      - API_SECURITY_TOKEN_SECRET=${API_SECURITY_TOKEN_SECRET:-change_me}
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME:?DB_USERNAME must be set}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:?DB_PASSWORD must be set}
+      - API_SECURITY_TOKEN_SECRET=${API_SECURITY_TOKEN_SECRET:?API_SECURITY_TOKEN_SECRET must be set (use a long random value, e.g. `openssl rand -base64 64`)}
     depends_on:
       - db
     restart: unless-stopped
@@ -20,10 +20,10 @@ services:
     image: postgres:18.3
     environment:
       POSTGRES_DB: ${DB_NAME:-barber_book}
-      POSTGRES_USER: ${DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
+      POSTGRES_USER: ${DB_USERNAME:?DB_USERNAME must be set}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 volumes:

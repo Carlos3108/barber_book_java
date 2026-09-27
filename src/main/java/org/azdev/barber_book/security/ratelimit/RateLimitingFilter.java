@@ -23,29 +23,23 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        if (isPublicAppointmentRequest(request)) {
-            String clientIp = request.getRemoteAddr();
-            if (clientIp == null || clientIp.isBlank()) {
-                clientIp = "unknown";
-            }
+        String clientIp = request.getRemoteAddr();
+        if (clientIp == null || clientIp.isBlank()) {
+            clientIp = "unknown";
+        }
 
+        if (isPublicAppointmentRequest(request)) {
             var bucket = rateLimitingService.resolveBucket(clientIp);
 
             if (!bucket.tryConsume(1)) {
-                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-                response.setCharacterEncoding("UTF-8");
-                response.setContentType("application/json");
-                response.setHeader("Retry-After", "3600");
+                writeTooManyRequests(request, response, "Você excedeu o limite de agendamentos. Tente novamente mais tarde.");
+                return;
+            }
+        } else if (isAuthRequest(request)) {
+            var bucket = rateLimitingService.resolveLoginBucket(clientIp);
 
-                ApiErrorResponse error = new ApiErrorResponse(
-                        OffsetDateTime.now(),
-                        HttpStatus.TOO_MANY_REQUESTS.value(),
-                        HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase(),
-                        "Você excedeu o limite de agendamentos. Tente novamente mais tarde.",
-                        request.getRequestURI()
-                );
-
-                response.getWriter().write("{\"timestamp\":\"" + error.timestamp() + "\",\"status\":" + error.status() + ",\"error\":\"" + error.error() + "\",\"message\":\"" + error.message() + "\",\"path\":\"" + error.path() + "\"}");
+            if (!bucket.tryConsume(1)) {
+                writeTooManyRequests(request, response, "Muitas tentativas de autenticação. Tente novamente mais tarde.");
                 return;
             }
         }
@@ -53,8 +47,32 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    private void writeTooManyRequests(HttpServletRequest request, HttpServletResponse response, String message)
+            throws IOException {
+        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json");
+        response.setHeader("Retry-After", "3600");
+
+        ApiErrorResponse error = new ApiErrorResponse(
+                OffsetDateTime.now(),
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase(),
+                message,
+                request.getRequestURI()
+        );
+
+        response.getWriter().write("{\"timestamp\":\"" + error.timestamp() + "\",\"status\":" + error.status() + ",\"error\":\"" + error.error() + "\",\"message\":\"" + error.message() + "\",\"path\":\"" + error.path() + "\"}");
+    }
+
     private boolean isPublicAppointmentRequest(HttpServletRequest request) {
         return "POST".equalsIgnoreCase(request.getMethod())
                 && request.getRequestURI().startsWith("/api/v1/public/appointments");
+    }
+
+    private boolean isAuthRequest(HttpServletRequest request) {
+        return "POST".equalsIgnoreCase(request.getMethod())
+                && (request.getRequestURI().startsWith("/api/v1/auth/login")
+                        || request.getRequestURI().startsWith("/api/v1/auth/register"));
     }
 }

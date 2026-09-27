@@ -26,7 +26,23 @@ public class JwtService {
     @Value("${api.security.token.expiration}")
     private Long expiration;
 
+    private static final int MIN_SECRET_LENGTH = 32;
+    private static final String KNOWN_WEAK_SECRET = "change_me";
+
     private SecretKey getSignInKey() {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("api.security.token.secret must be configured");
+        }
+        if (secret.trim().equalsIgnoreCase(KNOWN_WEAK_SECRET)) {
+            throw new IllegalStateException(
+                    "api.security.token.secret is set to the known default value; provide a strong, randomly generated secret (e.g. `openssl rand -base64 64`)");
+        }
+        if (secret.length() < MIN_SECRET_LENGTH) {
+            throw new IllegalStateException(
+                    "api.security.token.secret is too short; it must be at least " + MIN_SECRET_LENGTH
+                            + " characters of real entropy (e.g. `openssl rand -base64 64`)");
+        }
+
         byte[] keyBytes;
         try {
             // Try standard Base64 decode (common when SECRET is provided as Base64)

@@ -42,7 +42,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new RegisterPayload("shop", "owner", "mail@test.com", "123456"))))
+                        .content(objectMapper.writeValueAsString(new RegisterPayload("shop", "owner", "mail@test.com", "12345678"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value("register-token"));
     }
