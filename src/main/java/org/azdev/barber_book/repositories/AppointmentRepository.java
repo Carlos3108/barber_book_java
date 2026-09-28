@@ -19,6 +19,20 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     );
 
     @Query("""
+        SELECT a FROM Appointment a
+        JOIN FETCH a.professional
+        JOIN FETCH a.service
+        WHERE a.tenant.id = :tenantId
+        AND a.startTime BETWEEN :startOfDay AND :endOfDay
+        ORDER BY a.startTime ASC
+    """)
+    List<Appointment> findByTenantIdAndStartTimeBetweenWithDetails(
+            @Param("tenantId") UUID tenantId,
+            @Param("startOfDay") OffsetDateTime startOfDay,
+            @Param("endOfDay") OffsetDateTime endOfDay
+    );
+
+    @Query("""
         SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Appointment a
         WHERE a.professional.id = :professionalId
         AND a.status IN :activeStatuses 
@@ -35,8 +49,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
         SELECT a FROM Appointment a
         WHERE a.professional.id = :professionalId
         AND a.status IN :activeStatuses
-        AND a.startTime >= :startOfDay
-        AND a.startTime <= :endOfDay
+        AND a.startTime < :endOfDay
+        AND a.endTime > :startOfDay
     """)
     List<Appointment> findDailyAgendaForProfessional(
             @Param("professionalId") UUID professionalId,

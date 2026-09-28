@@ -59,6 +59,7 @@ public class CatalogService {
         return mapToResponse(catalog);
     }
 
+    @Transactional
     public void deleteService(UUID id) {
         UUID tenantId = securityUtils.getCurrentTenantId();
 
@@ -68,6 +69,7 @@ public class CatalogService {
         catalogRepository.save(catalog);
     }
 
+    @Transactional
     public CatalogResponse updateService (UUID id, CatalogRequest dto) {
         UUID tenantId = securityUtils.getCurrentTenantId();
 

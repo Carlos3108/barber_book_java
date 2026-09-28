@@ -10,13 +10,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import java.time.OffsetDateTime;
 import java.util.stream.Collectors;
 
@@ -94,9 +95,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request.getRequestURI());
     }
 
-    @ExceptionHandler(BadCredentialsException.class)
+    @ExceptionHandler({
+            org.springframework.security.authentication.BadCredentialsException.class,
+            org.azdev.barber_book.exception.BadCredentialsException.class
+    })
     public ResponseEntity<ApiErrorResponse> handleBadCredentials(
-            BadCredentialsException ex,
+            Exception ex,
             HttpServletRequest request
     ) {
         return buildResponse(
@@ -104,6 +108,23 @@ public class GlobalExceptionHandler {
                 "Credenciais inválidas.",
                 request.getRequestURI()
         );
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiErrorResponse> handleMalformedRequestBody(
+            HttpMessageNotReadableException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "Corpo da requisição inválido ou malformado.", request.getRequestURI());
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request
+    ) {
+        String message = "Parâmetro '" + ex.getName() + "' possui um valor inválido.";
+        return buildResponse(HttpStatus.BAD_REQUEST, message, request.getRequestURI());
     }
 
     @ExceptionHandler(Exception.class)

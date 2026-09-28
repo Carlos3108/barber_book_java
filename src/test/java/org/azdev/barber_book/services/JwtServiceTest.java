@@ -57,6 +57,52 @@ class JwtServiceTest {
         )).isInstanceOf(io.jsonwebtoken.ExpiredJwtException.class);
     }
 
+    @Test
+    void generateTokenWorksWithUrlSafeBase64Secret() {
+        // Contains '-' and '_' so it fails standard Base64 but succeeds as Base64URL.
+        ReflectionTestUtils.setField(jwtService, "secret", "a-b_c-d_e-f_g-h_i-j_k-l_m-n_o-p_q-r_s-t_u-v_w-x_y-z_012345");
+
+        AuthenticatedUserPrincipal appUser = buildPrincipal("owner@test.com", "TRIAL");
+        String token = jwtService.generateToken(appUser);
+
+        assertThat(jwtService.extractUsername(token)).isEqualTo("owner@test.com");
+    }
+
+    @Test
+    void generateTokenWorksWithRawUtf8FallbackSecret() {
+        // Not valid Base64 (contains spaces and invalid padding chars), falls back to raw UTF-8 bytes.
+        ReflectionTestUtils.setField(jwtService, "secret", "this is a plain raw secret string!! with spaces 123");
+
+        AuthenticatedUserPrincipal appUser = buildPrincipal("owner@test.com", "TRIAL");
+        String token = jwtService.generateToken(appUser);
+
+        assertThat(jwtService.extractUsername(token)).isEqualTo("owner@test.com");
+    }
+
+    @Test
+    void generateTokenThrowsWhenSecretIsBlank() {
+        ReflectionTestUtils.setField(jwtService, "secret", "  ");
+
+        assertThatThrownBy(() -> jwtService.generateToken(buildPrincipal("owner@test.com", "TRIAL")))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void generateTokenThrowsWhenSecretIsKnownWeakValue() {
+        ReflectionTestUtils.setField(jwtService, "secret", "change_me");
+
+        assertThatThrownBy(() -> jwtService.generateToken(buildPrincipal("owner@test.com", "TRIAL")))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void generateTokenThrowsWhenSecretIsTooShort() {
+        ReflectionTestUtils.setField(jwtService, "secret", "short-secret");
+
+        assertThatThrownBy(() -> jwtService.generateToken(buildPrincipal("owner@test.com", "TRIAL")))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
     private AuthenticatedUserPrincipal buildPrincipal(String email, String planStatus) {
         Tenant tenant = new Tenant();
         tenant.setId(UUID.randomUUID());

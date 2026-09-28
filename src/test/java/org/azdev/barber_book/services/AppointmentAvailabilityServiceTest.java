@@ -54,6 +54,7 @@ class AppointmentAvailabilityServiceTest {
                 appointmentRepository,
                 catalogRepository,
                 professionalRepository,
+                new AppointmentBusinessRules(fixedClock),
                 fixedClock
         );
 
@@ -71,6 +72,8 @@ class AppointmentAvailabilityServiceTest {
         Catalog serviceEntity = new Catalog();
         serviceEntity.setId(serviceId);
         serviceEntity.setDurationMinutes(30);
+        serviceEntity.setTenant(tenant);
+        professional.getServices().add(serviceEntity);
 
         when(catalogRepository.findById(serviceId)).thenReturn(Optional.of(serviceEntity));
         when(professionalRepository.findByIdWithTenant(professionalId)).thenReturn(Optional.of(professional));
@@ -93,6 +96,7 @@ class AppointmentAvailabilityServiceTest {
                 appointmentRepository,
                 catalogRepository,
                 professionalRepository,
+                new AppointmentBusinessRules(fixedClock),
                 fixedClock
         );
 
@@ -110,6 +114,8 @@ class AppointmentAvailabilityServiceTest {
         Catalog serviceEntity = new Catalog();
         serviceEntity.setId(serviceId);
         serviceEntity.setDurationMinutes(30);
+        serviceEntity.setTenant(tenant);
+        professional.getServices().add(serviceEntity);
 
         when(catalogRepository.findById(serviceId)).thenReturn(Optional.of(serviceEntity));
         when(professionalRepository.findByIdWithTenant(professionalId)).thenReturn(Optional.of(professional));
@@ -132,6 +138,7 @@ class AppointmentAvailabilityServiceTest {
                 appointmentRepository,
                 catalogRepository,
                 professionalRepository,
+                new AppointmentBusinessRules(fixedClock),
                 fixedClock
         );
 
@@ -149,6 +156,8 @@ class AppointmentAvailabilityServiceTest {
         Catalog serviceEntity = new Catalog();
         serviceEntity.setId(serviceId);
         serviceEntity.setDurationMinutes(60);
+        serviceEntity.setTenant(tenant);
+        professional.getServices().add(serviceEntity);
 
         Appointment appointment = new Appointment();
         appointment.setStartTime(OffsetDateTime.parse("2026-09-01T10:00:00-03:00"));
@@ -183,6 +192,7 @@ class AppointmentAvailabilityServiceTest {
                 appointmentRepository,
                 catalogRepository,
                 professionalRepository,
+                new AppointmentBusinessRules(fixedClock),
                 fixedClock
         );
 
@@ -200,6 +210,8 @@ class AppointmentAvailabilityServiceTest {
         Catalog serviceEntity = new Catalog();
         serviceEntity.setId(serviceId);
         serviceEntity.setDurationMinutes(30);
+        serviceEntity.setTenant(tenant);
+        professional.getServices().add(serviceEntity);
 
         when(catalogRepository.findById(serviceId)).thenReturn(Optional.of(serviceEntity));
         when(professionalRepository.findByIdWithTenant(professionalId)).thenReturn(Optional.of(professional));
@@ -228,6 +240,7 @@ class AppointmentAvailabilityServiceTest {
                 appointmentRepository,
                 catalogRepository,
                 professionalRepository,
+                new AppointmentBusinessRules(fixedClock),
                 fixedClock
         );
 
@@ -251,6 +264,7 @@ class AppointmentAvailabilityServiceTest {
                 appointmentRepository,
                 catalogRepository,
                 professionalRepository,
+                new AppointmentBusinessRules(fixedClock),
                 fixedClock
         );
 
@@ -268,6 +282,8 @@ class AppointmentAvailabilityServiceTest {
         Catalog serviceEntity = new Catalog();
         serviceEntity.setId(serviceId);
         serviceEntity.setDurationMinutes(0);
+        serviceEntity.setTenant(tenant);
+        professional.getServices().add(serviceEntity);
 
         when(catalogRepository.findById(serviceId)).thenReturn(Optional.of(serviceEntity));
         when(professionalRepository.findByIdWithTenant(professionalId)).thenReturn(Optional.of(professional));
@@ -275,5 +291,47 @@ class AppointmentAvailabilityServiceTest {
         assertThatThrownBy(() -> service.getAvailableSlots(professionalId, LocalDate.of(2026, 9, 2), serviceId))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("A duração do serviço deve ser maior que zero.");
+    }
+
+    @Test
+    void shouldThrowWhenProfessionalDoesNotOfferTheRequestedService() {
+        UUID professionalId = UUID.randomUUID();
+        UUID serviceId = UUID.randomUUID();
+        Clock fixedClock = Clock.fixed(
+                OffsetDateTime.parse("2026-09-01T12:00:00-03:00").toInstant(),
+                ZoneId.of("America/Sao_Paulo")
+        );
+
+        AppointmentAvailabilityService service = new AppointmentAvailabilityService(
+                appointmentRepository,
+                catalogRepository,
+                professionalRepository,
+                new AppointmentBusinessRules(fixedClock),
+                fixedClock
+        );
+
+        Tenant tenant = new Tenant();
+        tenant.setId(UUID.randomUUID());
+        tenant.setTimezone("America/Sao_Paulo");
+        tenant.setOpeningTime(LocalTime.of(9, 0));
+        tenant.setClosingTime(LocalTime.of(20, 0));
+        tenant.setSlotInterval(30);
+
+        Professional professional = new Professional();
+        professional.setId(professionalId);
+        professional.setTenant(tenant);
+        // Intentionally NOT added to professional.getServices() to simulate an unassigned service.
+
+        Catalog serviceEntity = new Catalog();
+        serviceEntity.setId(serviceId);
+        serviceEntity.setDurationMinutes(30);
+        serviceEntity.setTenant(tenant);
+
+        when(catalogRepository.findById(serviceId)).thenReturn(Optional.of(serviceEntity));
+        when(professionalRepository.findByIdWithTenant(professionalId)).thenReturn(Optional.of(professional));
+
+        assertThatThrownBy(() -> service.getAvailableSlots(professionalId, LocalDate.of(2026, 9, 2), serviceId))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Este profissional não realiza o serviço selecionado.");
     }
 }

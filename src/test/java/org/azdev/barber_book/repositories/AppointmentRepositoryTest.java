@@ -74,6 +74,25 @@ class AppointmentRepositoryTest {
         assertThat(result.get(1).getStartTime()).isEqualTo(start1);
     }
 
+    @Test
+    void findDailyAgendaIncludesAppointmentThatStartsOnPreviousDayAndOverlapsRequestedDay() {
+        Tenant tenant = saveTenant("tenant-3");
+        Professional professional = saveProfessional(tenant, "Ana");
+        Catalog service = saveService(tenant, "Corte e Barba");
+        OffsetDateTime start = LocalDateTime.of(2026, 4, 27, 23, 30).atOffset(ZoneOffset.UTC);
+        OffsetDateTime end = LocalDateTime.of(2026, 4, 28, 0, 30).atOffset(ZoneOffset.UTC);
+        saveAppointment(tenant, professional, service, start, end);
+
+        List<Appointment> agenda = appointmentRepository.findDailyAgendaForProfessional(
+                professional.getId(),
+                LocalDateTime.of(2026, 4, 28, 0, 0).atOffset(ZoneOffset.UTC),
+                LocalDateTime.of(2026, 4, 28, 23, 59, 59).atOffset(ZoneOffset.UTC),
+                List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
+        );
+
+        assertThat(agenda).hasSize(1);
+    }
+
     private Tenant saveTenant(String slug) {
         Tenant tenant = new Tenant();
         tenant.setName("Shop " + slug);

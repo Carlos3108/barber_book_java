@@ -23,29 +23,35 @@ WHERE a.professional_id IS NULL
    OR NOT EXISTS (SELECT 1 FROM services s WHERE s.id = a.service_id)
    OR NOT EXISTS (SELECT 1 FROM tenants t WHERE t.id = a.tenant_id);
 
--- Remove conflitos históricos sobrepostos preservando o registro mais antigo por profissional.
-WITH overlapping AS (
-    SELECT a.id,
-           ROW_NUMBER() OVER (
-               PARTITION BY a.professional_id
-               ORDER BY a.start_time, a.created_at, a.id
-           ) AS rn
-    FROM appointments a
-    WHERE a.status IN ('PENDING', 'CONFIRMED', 'COMPLETED')
-      AND EXISTS (
-          SELECT 1
-          FROM appointments b
-          WHERE b.professional_id = a.professional_id
-            AND b.id <> a.id
-            AND b.status IN ('PENDING', 'CONFIRMED', 'COMPLETED')
-            AND b.start_time < a.end_time
-            AND a.start_time < b.end_time
-      )
-)
-DELETE FROM appointments a
-USING overlapping o
-WHERE a.id = o.id
-  AND o.rn > 1;
+-- Remove conflitos históricos sobrepostos, mantendo por profissional o maior conjunto
+-- possível de agendamentos que não se sobrepõem entre si (varredura gulosa ordenada
+-- por horário de início: mantém um agendamento apenas se ele não conflitar com o
+-- último agendamento mantido para aquele profissional).
+DO $$
+DECLARE
+    rec RECORD;
+    last_end TIMESTAMPTZ;
+    last_professional UUID;
+BEGIN
+    FOR rec IN
+        SELECT id, professional_id, start_time, end_time
+        FROM appointments
+        WHERE status IN ('PENDING', 'CONFIRMED', 'COMPLETED')
+        ORDER BY professional_id, start_time, created_at, id
+    LOOP
+        IF last_professional IS DISTINCT FROM rec.professional_id THEN
+            last_end := NULL;
+        END IF;
+
+        IF last_end IS NOT NULL AND rec.start_time < last_end THEN
+            DELETE FROM appointments WHERE id = rec.id;
+        ELSE
+            last_end := rec.end_time;
+        END IF;
+
+        last_professional := rec.professional_id;
+    END LOOP;
+END $$;
 
 -- Garante que as colunas críticas da agenda não fiquem vazias.
 ALTER TABLE appointments

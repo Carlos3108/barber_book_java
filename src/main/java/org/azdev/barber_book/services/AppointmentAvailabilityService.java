@@ -32,6 +32,7 @@ public class AppointmentAvailabilityService {
     private final AppointmentRepository appointmentRepository;
     private final CatalogRepository catalogRepository;
     private final ProfessionalRepository professionalRepository;
+    private final AppointmentBusinessRules appointmentBusinessRules;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -41,6 +42,8 @@ public class AppointmentAvailabilityService {
 
         Professional professional = professionalRepository.findByIdWithTenant(professionalId)
                 .orElseThrow(() -> new NotFoundException("Profissional não encontrado."));
+
+        appointmentBusinessRules.validateCreation(service, professional);
 
         Tenant tenant = professional.getTenant();
         ZoneId zoneId = ZoneId.of(tenant.getTimezone());

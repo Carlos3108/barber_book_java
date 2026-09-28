@@ -9,7 +9,7 @@ CREATE TABLE professionals (
 );
 
 ALTER TABLE appointments
-    ADD COLUMN professional_id UUID NOT NULL;
+    ADD COLUMN professional_id UUID;
 
 ALTER TABLE appointments
     ADD CONSTRAINT fk_appointments_professional FOREIGN KEY (professional_id) REFERENCES professionals(id);

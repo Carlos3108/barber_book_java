@@ -59,6 +59,8 @@ public class AppointmentService {
         OffsetDateTime startTime = dto.startTime();
         OffsetDateTime endTime = startTime.plusMinutes(catalogService.getDurationMinutes());
 
+        appointmentBusinessRules.validateSlotAgainstSchedule(tenant, startTime, endTime);
+
         boolean isSlotTaken = appointmentRepository.hasOverlappingAppointment(
                 professional.getId(),
                 startTime,
@@ -119,7 +121,7 @@ public class AppointmentService {
         OffsetDateTime end = endDate.atTime(23, 59, 59).atZone(zoneId).toOffsetDateTime();
 
         List<Appointment> appointments = appointmentRepository
-                .findByTenantIdAndStartTimeBetweenOrderByStartTimeAsc(tenantId, start, end);
+                .findByTenantIdAndStartTimeBetweenWithDetails(tenantId, start, end);
 
         return appointments.stream()
                 .map(this::mapToResponse)

@@ -84,5 +84,98 @@ class JwtAuthenticationFilterTest {
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
         assertThat(SecurityContextHolder.getContext().getAuthentication().getName()).isEqualTo("owner@test.com");
     }
+
+    @Test
+    void ignoresInvalidTokenAndKeepsRequestFlow() throws Exception {
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtService, userDetailsService);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer malformed-token");
+
+        when(jwtService.extractUsername("malformed-token")).thenThrow(new RuntimeException("bad token"));
+
+        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    void rejectsSuspendedAccountEvenWithValidToken() throws Exception {
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtService, userDetailsService);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer suspended-token");
+
+        UserDetails suspendedUser = org.mockito.Mockito.mock(UserDetails.class);
+        when(suspendedUser.isAccountNonLocked()).thenReturn(false);
+
+        when(jwtService.extractUsername("suspended-token")).thenReturn("suspended@test.com");
+        when(userDetailsService.loadUserByUsername("suspended@test.com")).thenReturn(suspendedUser);
+
+        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    void skipsAuthenticationWhenTokenIsInvalidForUser() throws Exception {
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtService, userDetailsService);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer wrong-signature-token");
+
+        UserDetails userDetails = User.withUsername("owner@test.com").password("x").roles("ADMIN").build();
+        when(jwtService.extractUsername("wrong-signature-token")).thenReturn("owner@test.com");
+        when(userDetailsService.loadUserByUsername("owner@test.com")).thenReturn(userDetails);
+        when(jwtService.isTokenValid("wrong-signature-token", userDetails)).thenReturn(false);
+
+        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    void ignoresUsernameNotFoundException() throws Exception {
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtService, userDetailsService);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer unknown-user-token");
+
+        when(jwtService.extractUsername("unknown-user-token")).thenReturn("ghost@test.com");
+        when(userDetailsService.loadUserByUsername("ghost@test.com"))
+                .thenThrow(new org.springframework.security.core.userdetails.UsernameNotFoundException("not found"));
+
+        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    void ignoresGenericExceptionDuringAuthentication() throws Exception {
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtService, userDetailsService);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer error-token");
+
+        when(jwtService.extractUsername("error-token")).thenReturn("owner@test.com");
+        when(userDetailsService.loadUserByUsername("owner@test.com")).thenThrow(new RuntimeException("db down"));
+
+        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    void skipsReAuthenticationWhenAlreadyAuthenticated() throws Exception {
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtService, userDetailsService);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer already-authed-token");
+
+        org.springframework.security.authentication.TestingAuthenticationToken existing =
+                new org.springframework.security.authentication.TestingAuthenticationToken("existing", "pwd");
+        SecurityContextHolder.getContext().setAuthentication(existing);
+
+        when(jwtService.extractUsername("already-authed-token")).thenReturn("owner@test.com");
+
+        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isSameAs(existing);
+        verify(userDetailsService, never()).loadUserByUsername(org.mockito.ArgumentMatchers.anyString());
+    }
 }
 
