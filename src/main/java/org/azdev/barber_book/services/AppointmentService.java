@@ -8,6 +8,7 @@ import org.azdev.barber_book.exception.BadRequestException;
 import org.azdev.barber_book.exception.ConflictException;
 import org.azdev.barber_book.exception.NotFoundException;
 import org.azdev.barber_book.exception.UnauthorizedException;
+import org.azdev.barber_book.finance.events.AppointmentCompletedEvent;
 import org.azdev.barber_book.models.Appointment;
 import org.azdev.barber_book.models.Professional;
 import org.azdev.barber_book.models.Tenant;
@@ -17,6 +18,7 @@ import org.azdev.barber_book.repositories.CatalogRepository;
 import org.azdev.barber_book.repositories.ProfessionalRepository;
 import org.azdev.barber_book.repositories.TenantRepository;
 import org.azdev.barber_book.security.SecurityUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.azdev.barber_book.models.Catalog;
@@ -42,6 +44,7 @@ public class AppointmentService {
     private final TenantRepository tenantRepository;
     private final AppointmentAvailabilityService appointmentAvailabilityService;
     private final AppointmentBusinessRules appointmentBusinessRules;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public AppointmentResponse createAppointment(AppointmentRequest dto) {
@@ -154,5 +157,12 @@ public class AppointmentService {
 
         appointment.setStatus(AppointmentStatus.COMPLETED);
         appointmentRepository.save(appointment);
+
+        applicationEventPublisher.publishEvent(new AppointmentCompletedEvent(
+                appointment.getId(),
+                appointment.getTenant().getId(),
+                appointment.getProfessional().getId(),
+                appointment.getService().getPrice()
+        ));
     }
 }
