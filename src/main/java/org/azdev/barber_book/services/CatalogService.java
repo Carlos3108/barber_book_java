@@ -4,10 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.azdev.barber_book.dtos.CatalogRequest;
 import org.azdev.barber_book.dtos.CatalogResponse;
 import org.azdev.barber_book.exception.BadRequestException;
+import org.azdev.barber_book.exception.ConflictException;
 import org.azdev.barber_book.exception.NotFoundException;
 import org.azdev.barber_book.models.Catalog;
 import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.repositories.CatalogRepository;
+import org.azdev.barber_book.repositories.ProfessionalRepository;
 import org.azdev.barber_book.repositories.TenantRepository;
 import org.azdev.barber_book.security.SecurityUtils;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CatalogService {
     private final CatalogRepository catalogRepository;
+    private final ProfessionalRepository professionalRepository;
     private final TenantRepository tenantRepository;
     private final SecurityUtils securityUtils;
 
@@ -64,6 +67,10 @@ public class CatalogService {
         UUID tenantId = securityUtils.getCurrentTenantId();
 
         Catalog catalog = getCatalogAndValidateOwner(id, tenantId);
+
+        if (professionalRepository.existsByTenantIdAndServiceId(tenantId, id)) {
+            throw new ConflictException("Não é possível desativar um serviço associado a um funcionário.");
+        }
 
         catalog.setActive(false);
         catalogRepository.save(catalog);

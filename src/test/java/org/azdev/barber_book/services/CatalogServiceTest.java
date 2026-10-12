@@ -3,10 +3,12 @@ package org.azdev.barber_book.services;
 import org.azdev.barber_book.dtos.CatalogRequest;
 import org.azdev.barber_book.dtos.CatalogResponse;
 import org.azdev.barber_book.exception.BadRequestException;
+import org.azdev.barber_book.exception.ConflictException;
 import org.azdev.barber_book.exception.NotFoundException;
 import org.azdev.barber_book.models.Catalog;
 import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.repositories.CatalogRepository;
+import org.azdev.barber_book.repositories.ProfessionalRepository;
 import org.azdev.barber_book.repositories.TenantRepository;
 import org.azdev.barber_book.security.SecurityUtils;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +37,9 @@ class CatalogServiceTest {
 
     @Mock
     private TenantRepository tenantRepository;
+
+    @Mock
+    private ProfessionalRepository professionalRepository;
 
     @Mock
     private SecurityUtils securityUtils;
@@ -157,11 +164,32 @@ class CatalogServiceTest {
 
         when(securityUtils.getCurrentTenantId()).thenReturn(tenantId);
         when(catalogRepository.findByIdAndTenantId(catalogId, tenantId)).thenReturn(Optional.of(catalog));
+        when(professionalRepository.existsByTenantIdAndServiceId(tenantId, catalogId)).thenReturn(false);
         when(catalogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         catalogService.deleteService(catalogId);
 
         assertThat(catalog.isActive()).isFalse();
+    }
+
+    @Test
+    void deleteServiceRejectsWhenAssociatedWithProfessional() {
+        UUID tenantId = UUID.randomUUID();
+        UUID catalogId = UUID.randomUUID();
+        Catalog catalog = new Catalog();
+        catalog.setId(catalogId);
+        catalog.setActive(true);
+
+        when(securityUtils.getCurrentTenantId()).thenReturn(tenantId);
+        when(catalogRepository.findByIdAndTenantId(catalogId, tenantId)).thenReturn(Optional.of(catalog));
+        when(professionalRepository.existsByTenantIdAndServiceId(tenantId, catalogId)).thenReturn(true);
+
+        assertThatThrownBy(() -> catalogService.deleteService(catalogId))
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("Não é possível desativar um serviço associado a um funcionário.");
+
+        assertThat(catalog.isActive()).isTrue();
+        verify(catalogRepository, never()).save(any());
     }
 
     @Test

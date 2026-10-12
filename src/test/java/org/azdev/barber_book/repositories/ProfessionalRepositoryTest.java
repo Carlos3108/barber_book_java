@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -42,6 +43,17 @@ class ProfessionalRepositoryTest {
         assertThat(professionals.getFirst().getServices())
                 .extracting(Catalog::getName)
                 .containsExactly("Corte");
+    }
+
+    @Test
+    void existsByTenantIdAndServiceIdFindsServiceAssignedToAnyProfessionalInTenant() {
+        Tenant tenant = tenantRepository.save(buildTenant("tenant-service-assignment"));
+        Catalog service = catalogRepository.save(buildService("Corte", tenant));
+        professionalRepository.save(buildProfessional("Carlos", false, tenant, service));
+
+        assertThat(professionalRepository.existsByTenantIdAndServiceId(tenant.getId(), service.getId())).isTrue();
+        assertThat(professionalRepository.existsByTenantIdAndServiceId(UUID.randomUUID(), service.getId())).isFalse();
+        assertThat(professionalRepository.existsByTenantIdAndServiceId(tenant.getId(), UUID.randomUUID())).isFalse();
     }
 
     private Tenant buildTenant(String slug) {

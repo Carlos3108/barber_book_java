@@ -27,6 +27,18 @@ public interface ProfessionalRepository extends JpaRepository<Professional, UUID
     Optional<Professional> findByIdAndTenantId(UUID id, UUID tenantId);
 
     @Query("""
+        SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END
+        FROM Professional p
+        JOIN p.services s
+        WHERE p.tenant.id = :tenantId
+          AND s.id = :serviceId
+    """)
+    boolean existsByTenantIdAndServiceId(
+            @Param("tenantId") UUID tenantId,
+            @Param("serviceId") UUID serviceId
+    );
+
+    @Query("""
         SELECT p FROM Professional p
         JOIN FETCH p.tenant t
         WHERE p.id = :id
