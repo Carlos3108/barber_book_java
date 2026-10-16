@@ -1,5 +1,7 @@
 package org.azdev.barber_book.finance.controllers;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.azdev.barber_book.finance.dtos.response.FinancialDashboardResponse;
 import org.azdev.barber_book.finance.services.FinancialService;
@@ -17,10 +19,11 @@ import java.time.OffsetDateTime;
 @RestController
 @RequestMapping("/api/v1/finance")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "bearerAuth")
+@Tag(name = "Finanças", description = "Endpoints para gerenciamento financeiro")
 public class FinancialController {
 
     private final FinancialService financialService;
-    private final SecurityUtils securityUtils;
 
     @GetMapping("/dashboard")
     public ResponseEntity<FinancialDashboardResponse> getDashboard(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
