@@ -7,13 +7,15 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_DATASOURCE_URL=${DB_URL:-jdbc:postgresql://db:5432/barber_book}
-      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME:?DB_USERNAME must be set}
-      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:?DB_PASSWORD must be set}
-      - API_SECURITY_TOKEN_SECRET=${API_SECURITY_TOKEN_SECRET:?API_SECURITY_TOKEN_SECRET must be set (use a long random value, e.g. `openssl rand -base64 64`)}
+      SPRING_PROFILES_ACTIVE: prod
+      PORT: "8080"
+      SPRING_DATASOURCE_URL: ${DB_URL:-jdbc:postgresql://db:5432/${DB_NAME:-barber_book}}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:?DB_USERNAME must be set}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+      API_SECURITY_TOKEN_SECRET: ${API_SECURITY_TOKEN_SECRET:?API_SECURITY_TOKEN_SECRET must be set (use a long random value, e.g. `openssl rand -base64 64`)}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
   db:
@@ -25,6 +27,46 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  evolution-api:
+    image: evoapicloud/evolution-api:latest
+    container_name: evolution-api
+    ports:
+      - "8081:8080"
+    environment:
+      - SERVER_URL=http://localhost:8081
+      - DEL_INSTANCE=false
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://${DB_USERNAME}:${DB_PASSWORD}@db:5432/${DB_NAME:-barber_book}?schema=evolution
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379/1
+      - CACHE_REDIS_PREFIX_KEY=evolution
+      - CACHE_LOCAL_ENABLED=false
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:?EVOLUTION_API_KEY must be set}
+      - LOG_LEVEL=ERROR,WARN,DEBUG,INFO
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  redis_data:
