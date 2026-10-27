@@ -42,18 +42,19 @@ class ProfessionalControllerTest {
                 .build();
     }
 
-    private record ProfessionalPayload(String name, Set<UUID> serviceIds) {
+    private record ProfessionalPayload(String name, Set<UUID> serviceIds, String phone) {
     }
 
     @Test
     void createReturnsCreated() throws Exception {
         UUID id = UUID.randomUUID();
         when(professionalService.createProfessional(any())).thenReturn(
-                new ProfessionalResponse(id, "João", true, Set.of()));
+                new ProfessionalResponse(id, "João", true, "11999999999", Set.of()));
 
         mockMvc.perform(post("/api/v1/professionals")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new ProfessionalPayload("João", Set.of()))))
+                        .content(objectMapper.writeValueAsString(
+                                new ProfessionalPayload("João", Set.of(), "11999999999"))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("João"));
     }
@@ -61,7 +62,7 @@ class ProfessionalControllerTest {
     @Test
     void listReturnsProfessionals() throws Exception {
         when(professionalService.listMyProfessionals()).thenReturn(List.of(
-                new ProfessionalResponse(UUID.randomUUID(), "Maria", true, Set.of())));
+                new ProfessionalResponse(UUID.randomUUID(), "Maria", true, "11999999999", Set.of())));
 
         mockMvc.perform(get("/api/v1/professionals"))
                 .andExpect(status().isOk())
@@ -72,7 +73,7 @@ class ProfessionalControllerTest {
     void getByIdReturnsProfessional() throws Exception {
         UUID id = UUID.randomUUID();
         when(professionalService.getProfessionalById(id)).thenReturn(
-                new ProfessionalResponse(id, "João", true, Set.of()));
+                new ProfessionalResponse(id, "João", true, "11999999999", Set.of()));
 
         mockMvc.perform(get("/api/v1/professionals/" + id))
                 .andExpect(status().isOk())
@@ -83,11 +84,12 @@ class ProfessionalControllerTest {
     void updateReturnsUpdatedProfessional() throws Exception {
         UUID id = UUID.randomUUID();
         when(professionalService.updateProfessional(eq(id), any())).thenReturn(
-                new ProfessionalResponse(id, "Novo Nome", true, Set.of()));
+                new ProfessionalResponse(id, "Novo Nome", true, "11999999999", Set.of()));
 
         mockMvc.perform(put("/api/v1/professionals/" + id)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new ProfessionalPayload("Novo Nome", Set.of()))))
+                        .content(objectMapper.writeValueAsString(
+                                new ProfessionalPayload("Novo Nome", Set.of(), "11999999999"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Novo Nome"));
     }

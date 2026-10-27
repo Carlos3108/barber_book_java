@@ -34,6 +34,7 @@ public class ProfessionalService {
     public ProfessionalResponse createProfessional(ProfessionalRequest dto) {
         UUID tenantId = securityUtils.getCurrentTenantId();
         Professional professional = handleSmartUpsert(dto, tenantId);
+        professional.setPhone(dto.phone());
         linkServicesToProfessional(professional, dto.serviceIds(), tenantId);
         return mapToResponse(professionalRepository.save(professional));
     }
@@ -53,6 +54,7 @@ public class ProfessionalService {
         Professional professional = getProfessionalAndValidateOwnership(id, tenantId);
 
         professional.setName(dto.name());
+        professional.setPhone(dto.phone());
         linkServicesToProfessional(professional, dto.serviceIds(), tenantId);
 
         return mapToResponse(professionalRepository.save(professional));
@@ -157,6 +159,7 @@ public class ProfessionalService {
                 professional.getId(),
                 professional.getName(),
                 professional.isActive(),
+                professional.getPhone(),
                 serviceIds
         );
     }

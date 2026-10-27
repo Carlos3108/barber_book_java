@@ -6,5 +6,6 @@ import java.util.UUID;
 public record ProfessionalResponse(UUID id,
                                    String name,
                                    boolean active,
+                                   String phone,
                                    Set<UUID> serviceIds) {
 }

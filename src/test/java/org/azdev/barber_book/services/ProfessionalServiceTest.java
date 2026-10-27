@@ -59,10 +59,11 @@ class ProfessionalServiceTest {
         when(professionalRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ProfessionalResponse response = professionalService.createProfessional(
-                new ProfessionalRequest("João", Set.of()));
+                new ProfessionalRequest("João", Set.of(), "11999999999"));
 
         assertThat(response.name()).isEqualTo("João");
         assertThat(response.active()).isTrue();
+        assertThat(response.phone()).isEqualTo("11999999999");
     }
 
     @Test
@@ -75,7 +76,8 @@ class ProfessionalServiceTest {
         when(professionalRepository.findByTenantIdAndNameIgnoreCase(tenantId, "João"))
                 .thenReturn(Optional.of(existing));
 
-        assertThatThrownBy(() -> professionalService.createProfessional(new ProfessionalRequest("João", Set.of())))
+        assertThatThrownBy(() -> professionalService.createProfessional(
+                new ProfessionalRequest("João", Set.of(), "11999999999")))
                 .isInstanceOf(BadRequestException.class);
     }
 
@@ -93,9 +95,10 @@ class ProfessionalServiceTest {
         when(professionalRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ProfessionalResponse response = professionalService.createProfessional(
-                new ProfessionalRequest("João", Set.of()));
+                new ProfessionalRequest("João", Set.of(), "11999999999"));
 
         assertThat(response.active()).isTrue();
+        assertThat(response.phone()).isEqualTo("11999999999");
     }
 
     @Test
@@ -112,7 +115,7 @@ class ProfessionalServiceTest {
         when(catalogRepository.findAllById(Set.of(serviceId))).thenReturn(List.of());
 
         assertThatThrownBy(() -> professionalService.createProfessional(
-                new ProfessionalRequest("João", Set.of(serviceId))))
+                new ProfessionalRequest("João", Set.of(serviceId), "11999999999")))
                 .isInstanceOf(NotFoundException.class);
     }
 
@@ -138,7 +141,7 @@ class ProfessionalServiceTest {
         when(catalogRepository.findAllById(Set.of(serviceId))).thenReturn(List.of(foreignService));
 
         assertThatThrownBy(() -> professionalService.createProfessional(
-                new ProfessionalRequest("João", Set.of(serviceId))))
+                new ProfessionalRequest("João", Set.of(serviceId), "11999999999")))
                 .isInstanceOf(UnauthorizedException.class);
     }
 
@@ -161,7 +164,7 @@ class ProfessionalServiceTest {
         when(professionalRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ProfessionalResponse response = professionalService.createProfessional(
-                new ProfessionalRequest("João", Set.of(serviceId)));
+                new ProfessionalRequest("João", Set.of(serviceId), "11999999999"));
 
         assertThat(response.serviceIds()).containsExactly(serviceId);
     }
@@ -191,12 +194,12 @@ class ProfessionalServiceTest {
         when(professionalRepository.findByIdAndTenantId(professionalId, tenantId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> professionalService.updateProfessional(
-                professionalId, new ProfessionalRequest("Novo Nome", Set.of())))
+                professionalId, new ProfessionalRequest("Novo Nome", Set.of(), "11999999999")))
                 .isInstanceOf(UnauthorizedException.class);
     }
 
     @Test
-    void updateProfessionalUpdatesNameAndServices() {
+    void updateProfessionalUpdatesNamePhoneAndServices() {
         UUID tenantId = UUID.randomUUID();
         UUID professionalId = UUID.randomUUID();
         Professional professional = new Professional();
@@ -208,9 +211,10 @@ class ProfessionalServiceTest {
         when(professionalRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ProfessionalResponse response = professionalService.updateProfessional(
-                professionalId, new ProfessionalRequest("Novo Nome", Set.of()));
+                professionalId, new ProfessionalRequest("Novo Nome", Set.of(), "11999999999"));
 
         assertThat(response.name()).isEqualTo("Novo Nome");
+        assertThat(response.phone()).isEqualTo("11999999999");
     }
 
     @Test

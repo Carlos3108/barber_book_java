@@ -76,7 +76,7 @@ class PublicControllerTest {
     @Test
     void getBarbershopProfessionalsReturnsList() throws Exception {
         when(professionalService.getPublicProfessionalsBySlug("shop")).thenReturn(List.of(
-                new ProfessionalResponse(UUID.randomUUID(), "João", true, Set.of())));
+                new ProfessionalResponse(UUID.randomUUID(), "João", true, "11999999999", Set.of())));
 
         mockMvc.perform(get("/api/v1/public/barbershop/shop/professionals"))
                 .andExpect(status().isOk())
@@ -100,7 +100,7 @@ class PublicControllerTest {
     void getPublicProfessionalByIdReturnsProfessional() throws Exception {
         UUID id = UUID.randomUUID();
         when(professionalService.getPublicProfessionalById(id))
-                .thenReturn(new ProfessionalResponse(id, "João", true, Set.of()));
+                .thenReturn(new ProfessionalResponse(id, "João", true, "11999999999", Set.of()));
 
         mockMvc.perform(get("/api/v1/public/professionals/" + id))
                 .andExpect(status().isOk())

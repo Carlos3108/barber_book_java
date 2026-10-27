@@ -1,4 +1,11 @@
 package org.azdev.barber_book.notifications.events;
 
-public record AppointmentCreatedEvent() {
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+public record AppointmentCreatedEvent(UUID appointmentId,
+                                      UUID tenantId,
+                                      String clientName,
+                                      String clientPhone,
+                                      OffsetDateTime startTime) {
 }

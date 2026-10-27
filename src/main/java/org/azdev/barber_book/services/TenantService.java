@@ -28,6 +28,12 @@ public class TenantService {
         return Map.of("name", tenant.getName());
     }
 
+    @Transactional(readOnly = true)
+    public Tenant getCurrentTenant() {
+        return tenantRepository.findById(securityUtils.getCurrentTenantId())
+                .orElseThrow(() -> new NotFoundException("Barbearia não encontrada."));
+    }
+
     @Transactional
     public void updateMyBarbershop(TenantRequest request) {
 

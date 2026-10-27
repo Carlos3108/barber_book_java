@@ -30,4 +30,6 @@ public class Professional extends BaseEntity{
     )
     private Set<Catalog> services = new HashSet<>();
 
+    @Column(name = "phone", length = 20)
+    private String phone;
 }

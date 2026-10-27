@@ -13,6 +13,7 @@ import org.azdev.barber_book.models.Appointment;
 import org.azdev.barber_book.models.Professional;
 import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.models.enums.AppointmentStatus;
+import org.azdev.barber_book.notifications.events.AppointmentCreatedEvent;
 import org.azdev.barber_book.repositories.AppointmentRepository;
 import org.azdev.barber_book.repositories.CatalogRepository;
 import org.azdev.barber_book.repositories.ProfessionalRepository;
@@ -86,6 +87,14 @@ public class AppointmentService {
         appointment.setTenant(tenant);
 
         appointment = appointmentRepository.save(appointment);
+
+        applicationEventPublisher.publishEvent(new AppointmentCreatedEvent(
+                appointment.getId(),
+                tenant.getId(),
+                appointment.getClientName(),
+                appointment.getClientPhone(),
+                appointment.getStartTime()
+        ));
 
         return mapToResponse(appointment);
     }

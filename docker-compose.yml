@@ -13,6 +13,8 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:?DB_USERNAME must be set}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
       API_SECURITY_TOKEN_SECRET: ${API_SECURITY_TOKEN_SECRET:?API_SECURITY_TOKEN_SECRET must be set (use a long random value, e.g. `openssl rand -base64 64`)}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:?EVOLUTION_API_KEY must be set}
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL}
     depends_on:
       db:
         condition: service_healthy

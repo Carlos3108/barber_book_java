@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -55,6 +56,9 @@ class AppointmentServiceTest {
 
     @Mock
     private AppointmentBusinessRules appointmentBusinessRules;
+
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     private AppointmentService appointmentService;
@@ -272,9 +276,17 @@ class AppointmentServiceTest {
         Tenant tenant = new Tenant();
         tenant.setId(tenantId);
 
+        Professional professional = new Professional();
+        professional.setId(UUID.randomUUID());
+
+        Catalog service = new Catalog();
+        service.setPrice(new BigDecimal("50.00"));
+
         Appointment appointment = new Appointment();
         appointment.setId(appointmentId);
         appointment.setTenant(tenant);
+        appointment.setProfessional(professional);
+        appointment.setService(service);
         appointment.setStatus(AppointmentStatus.CONFIRMED);
 
         when(securityUtils.getCurrentTenantId()).thenReturn(tenantId);
