@@ -23,9 +23,17 @@ public class EvolutionApiClient {
             @Value("${evolution.api.key}") String apiKey) {
         this.apiKey = apiKey;
         this.restClient = RestClient.builder()
-                .baseUrl(apiUrl)
+                .baseUrl(normalizeUrl(apiUrl))
                 .defaultHeader("apikey", apiKey)
                 .build();
+    }
+
+    private static String normalizeUrl(String url) {
+        String value = url == null ? "" : url.trim();
+        if (!value.matches("(?i)^https?://.*")) {
+            value = "https://" + value;
+        }
+        return value.replaceAll("/+$", "");
     }
 
     public String createInstance(String instanceName) {
