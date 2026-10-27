@@ -19,7 +19,7 @@ public class EvolutionApiClient {
     private final String apiKey;
 
     public EvolutionApiClient(
-            @Value("${evolution.api.url") String apiUrl,
+            @Value("${evolution.api.url}") String apiUrl,
             @Value("${evolution.api.key}") String apiKey) {
         this.apiKey = apiKey;
         this.restClient = RestClient.builder()
