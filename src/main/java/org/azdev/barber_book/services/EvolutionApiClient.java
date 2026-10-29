@@ -1,12 +1,13 @@
 package org.azdev.barber_book.services;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
+import java.net.URI;
 import java.util.Map;
 
 @Component
@@ -16,13 +17,18 @@ public class EvolutionApiClient {
             new ParameterizedTypeReference<>() {};
 
     private final RestClient restClient;
-    private final String apiKey;
 
     public EvolutionApiClient(
             @Value("${evolution.api.url}") String apiUrl,
             @Value("${evolution.api.key}") String apiKey) {
-        this.apiKey = apiKey;
-        this.restClient = RestClient.builder()
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalStateException("EVOLUTION_API_KEY não está configurada");
+        }
+        this.restClient = buildClient(apiUrl, apiKey);
+    }
+
+    private static RestClient buildClient(String apiUrl, String apiKey) {
+        return RestClient.builder()
                 .baseUrl(normalizeUrl(apiUrl))
                 .defaultHeader("apikey", apiKey)
                 .build();
@@ -30,14 +36,33 @@ public class EvolutionApiClient {
 
     private static String normalizeUrl(String url) {
         String value = url == null ? "" : url.trim();
+        if (value.isBlank()) {
+            throw new IllegalArgumentException("EVOLUTION_API_URL não está configurada");
+        }
         if (!value.matches("(?i)^https?://.*")) {
             value = "https://" + value;
         }
-        return value.replaceAll("/+$", "");
+        value = value.replaceAll("/+$", "");
+
+        URI uri;
+        try {
+            uri = URI.create(value);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("EVOLUTION_API_URL deve ser uma URL HTTP(S) válida", exception);
+        }
+        String scheme = uri.getScheme();
+        if (scheme == null
+                || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))
+                || uri.getHost() == null
+                || uri.getUserInfo() != null
+                || uri.getQuery() != null
+                || uri.getFragment() != null) {
+            throw new IllegalArgumentException("EVOLUTION_API_URL deve ser uma URL HTTP(S) válida");
+        }
+        return value;
     }
 
     public String createInstance(String instanceName) {
-        ensureConfigured();
         try {
             Map<String, Object> response = restClient.post()
                     .uri("/instance/create")
@@ -60,7 +85,6 @@ public class EvolutionApiClient {
     }
 
     public String connectInstance(String instanceName) {
-        ensureConfigured();
         Map<String, Object> response = restClient.get()
                 .uri("/instance/connect/{instanceName}", instanceName)
                 .retrieve()
@@ -70,7 +94,6 @@ public class EvolutionApiClient {
     }
 
     public boolean isInstanceConnected(String instanceName) {
-        ensureConfigured();
         Map<String, Object> response = restClient.get()
                 .uri("/instance/connectionState/{instanceName}", instanceName)
                 .retrieve()
@@ -88,7 +111,6 @@ public class EvolutionApiClient {
     }
 
     public void disconnectInstance(String instanceName) {
-        ensureConfigured();
         restClient.delete()
                 .uri("/instance/logout/{instanceName}", instanceName)
                 .retrieve()
@@ -96,7 +118,6 @@ public class EvolutionApiClient {
     }
 
     public void sendText(String instanceName, String number, String message) {
-        ensureConfigured();
         restClient.post()
                 .uri("/message/sendText/{instanceName}", instanceName)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -121,9 +142,4 @@ public class EvolutionApiClient {
         return normalizedBody.contains("This name \"" + instanceName + "\" is already in use.");
     }
 
-    private void ensureConfigured() {
-        if (apiKey.isBlank()) {
-            throw new IllegalStateException("EVOLUTION_API_KEY não está configurada");
-        }
-    }
 }

@@ -1,6 +1,7 @@
 package org.azdev.barber_book.services;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.azdev.barber_book.dtos.WhatsAppSettingsRequest;
 import org.azdev.barber_book.dtos.WhatsAppStatusResponse;
 import org.azdev.barber_book.exception.NotFoundException;
@@ -8,8 +9,10 @@ import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.models.WhatsAppSettings;
 import org.azdev.barber_book.repositories.WhatsAppSettingsRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WhatsAppService {
@@ -26,8 +29,14 @@ public class WhatsAppService {
         WhatsAppSettings settings = existingSettings.orElseGet(() -> createDefaultSettings(tenant));
 
         if (settings.getInstanceName() != null) {
-            settings.setConnected(evolutionApiClient.isInstanceConnected(settings.getInstanceName()));
-            settingsRepository.save(settings);
+            try {
+                settings.setConnected(evolutionApiClient.isInstanceConnected(settings.getInstanceName()));
+                settingsRepository.save(settings);
+            } catch (RestClientException exception) {
+                log.warn("Não foi possível consultar o estado da instância {} na Evolution API: {}",
+                        settings.getInstanceName(), exception.getMessage());
+                settings.setConnected(false);
+            }
         } else if (existingSettings.isEmpty()) {
             settingsRepository.save(settings);
         }
