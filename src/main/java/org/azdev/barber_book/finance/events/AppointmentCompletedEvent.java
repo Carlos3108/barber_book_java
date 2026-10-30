@@ -7,6 +7,9 @@ public record AppointmentCompletedEvent(
         UUID appointmentId,
         UUID tenantId,
         UUID professionalId,
-        BigDecimal servicePrice
+        BigDecimal servicePrice,
+        String clientName,
+        String clientPhone,
+        String professionalName
 ) {
 }

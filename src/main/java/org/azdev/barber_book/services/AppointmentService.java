@@ -13,6 +13,7 @@ import org.azdev.barber_book.models.Appointment;
 import org.azdev.barber_book.models.Professional;
 import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.models.enums.AppointmentStatus;
+import org.azdev.barber_book.notifications.events.AppointmentCancelledEvent;
 import org.azdev.barber_book.notifications.events.AppointmentCreatedEvent;
 import org.azdev.barber_book.repositories.AppointmentRepository;
 import org.azdev.barber_book.repositories.CatalogRepository;
@@ -152,6 +153,19 @@ public class AppointmentService {
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointmentRepository.save(appointment);
+
+        String professionalName = appointment.getProfessional() != null ? appointment.getProfessional().getName() : null;
+        String professionalPhone = appointment.getProfessional() != null ? appointment.getProfessional().getPhone() : null;
+
+        applicationEventPublisher.publishEvent(new AppointmentCancelledEvent(
+                appointment.getId(),
+                appointment.getTenant() != null ? appointment.getTenant().getId() : tenantId,
+                appointment.getClientName(),
+                appointment.getClientPhone(),
+                professionalName,
+                professionalPhone,
+                appointment.getStartTime()
+        ));
     }
 
     @Transactional
@@ -171,7 +185,10 @@ public class AppointmentService {
                 appointment.getId(),
                 appointment.getTenant().getId(),
                 appointment.getProfessional().getId(),
-                appointment.getService().getPrice()
+                appointment.getService().getPrice(),
+                appointment.getClientName(),
+                appointment.getClientPhone(),
+                appointment.getProfessional().getName()
         ));
     }
 }
