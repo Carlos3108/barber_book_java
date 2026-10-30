@@ -7,6 +7,10 @@ import lombok.RequiredArgsConstructor;
 import org.azdev.barber_book.dtos.AuthenticationRequest;
 import org.azdev.barber_book.dtos.AuthenticationResponse;
 import org.azdev.barber_book.dtos.RegisterRequest;
+import org.azdev.barber_book.dtos.RegistrationResponse;
+import org.azdev.barber_book.dtos.ResendVerificationRequest;
+import org.azdev.barber_book.dtos.VerifyEmailRequest;
+import org.azdev.barber_book.services.EmailVerificationService;
 import org.azdev.barber_book.services.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,10 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final EmailVerificationService emailVerificationService;
 
     @PostMapping("/register")
     @Operation(summary = "Registra um novo usuário e seu estabelecimento (tenant)")
-    public ResponseEntity<AuthenticationResponse> register (
+    public ResponseEntity<RegistrationResponse> register (
             @Valid @RequestBody RegisterRequest request){
         return ResponseEntity.ok(authService.register(request));
     }
@@ -34,5 +39,20 @@ public class AuthController {
     public ResponseEntity<AuthenticationResponse> authenticate (
             @Valid @RequestBody AuthenticationRequest request){
         return ResponseEntity.ok(authService.authenticate(request));
+    }
+
+    @PostMapping("/verify-email")
+    @Operation(summary = "Confirma o e-mail com o código recebido e retorna um token JWT")
+    public ResponseEntity<AuthenticationResponse> verifyEmail (
+            @Valid @RequestBody VerifyEmailRequest request){
+        return ResponseEntity.ok(emailVerificationService.verify(request.email(), request.code()));
+    }
+
+    @PostMapping("/resend-verification")
+    @Operation(summary = "Reenvia o código de verificação de e-mail")
+    public ResponseEntity<Void> resendVerification (
+            @Valid @RequestBody ResendVerificationRequest request){
+        emailVerificationService.resend(request.email());
+        return ResponseEntity.noContent().build();
     }
 }

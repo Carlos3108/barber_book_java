@@ -3,9 +3,11 @@ package org.azdev.barber_book.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.azdev.barber_book.dtos.AppointmentResponse;
+import org.azdev.barber_book.dtos.ClientFrequencyReportResponse;
 import org.azdev.barber_book.exception.GlobalExceptionHandler;
 import org.azdev.barber_book.models.enums.AppointmentStatus;
 import org.azdev.barber_book.services.AppointmentService;
+import org.azdev.barber_book.services.ClientFrequencyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,13 +36,16 @@ class AppointmentControllerTest {
 
     @Mock
     private AppointmentService appointmentService;
+    @Mock
+    private ClientFrequencyService clientFrequencyService;
 
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AppointmentController(appointmentService))
+        mockMvc = MockMvcBuilders.standaloneSetup(
+                        new AppointmentController(appointmentService, clientFrequencyService))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -91,6 +96,17 @@ class AppointmentControllerTest {
                         .param("endDate", LocalDate.now().plusDays(1).toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].clientName").value("Cliente"));
+    }
+
+    @Test
+    void clientFrequencyReturnsPaginatedReport() throws Exception {
+        when(clientFrequencyService.getReport(null, 0, 25))
+                .thenReturn(new ClientFrequencyReportResponse("2026-10", 0, 25, 0, List.of()));
+
+        mockMvc.perform(get("/api/v1/appointments/client-frequency"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.month").value("2026-10"))
+                .andExpect(jsonPath("$.totalClients").value(0));
     }
 
     @Test

@@ -14,6 +14,8 @@ import org.azdev.barber_book.models.enums.AppointmentStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 
@@ -93,6 +95,47 @@ class AppointmentRepositoryTest {
         assertThat(agenda).hasSize(1);
     }
 
+    @Test
+    void clientFrequencyCountsOnlyCompletedAppointmentsFromTheRequestedTenantAndMonth() {
+        Tenant tenant = saveTenant("frequency-tenant");
+        Tenant anotherTenant = saveTenant("frequency-other-tenant");
+        Professional professional = saveProfessional(tenant, "João");
+        Professional otherProfessional = saveProfessional(anotherTenant, "Maria");
+        Catalog service = saveService(tenant, "Corte");
+        Catalog otherService = saveService(anotherTenant, "Corte");
+        ZoneId zone = ZoneId.of(tenant.getTimezone());
+        OffsetDateTime inMonth = YearMonth.of(2026, 4).atDay(10).atStartOfDay(zone).toOffsetDateTime();
+        OffsetDateTime previousMonth = YearMonth.of(2026, 3).atDay(20).atStartOfDay(zone).toOffsetDateTime();
+
+        saveAppointment(tenant, professional, service, inMonth, inMonth.plusMinutes(30),
+                "Cliente", "11911111111", AppointmentStatus.COMPLETED);
+        saveAppointment(tenant, professional, service, previousMonth, previousMonth.plusMinutes(30),
+                "Cliente", "11911111111", AppointmentStatus.COMPLETED);
+        saveAppointment(tenant, professional, service, previousMonth, previousMonth.plusMinutes(30),
+                "Cliente sem visita neste mês", "11933333333", AppointmentStatus.COMPLETED);
+        saveAppointment(tenant, professional, service, inMonth.plusDays(1), inMonth.plusDays(1).plusMinutes(30),
+                "Outro", "11922222222", AppointmentStatus.CANCELLED);
+        saveAppointment(anotherTenant, otherProfessional, otherService, inMonth, inMonth.plusMinutes(30),
+                "Cliente de outra barbearia", "11911111111", AppointmentStatus.COMPLETED);
+
+        var page = appointmentRepository.findClientFrequencyByTenant(
+                tenant.getId(),
+                AppointmentStatus.COMPLETED,
+                YearMonth.of(2026, 4).atDay(1).atStartOfDay(zone).toOffsetDateTime(),
+                YearMonth.of(2026, 5).atDay(1).atStartOfDay(zone).toOffsetDateTime(),
+                org.springframework.data.domain.PageRequest.of(0, 25)
+        );
+
+        assertThat(page.getTotalElements()).isEqualTo(2);
+        assertThat(page.getContent()).hasSize(2);
+        assertThat(page.getContent().getFirst().getClientName()).isEqualTo("Cliente");
+        assertThat(page.getContent().getFirst().getClientPhone()).isEqualTo("11911111111");
+        assertThat(page.getContent().getFirst().getCompletedAppointmentsThisMonth()).isEqualTo(1L);
+        assertThat(page.getContent().getFirst().getLastCompletedAt()).isEqualTo(inMonth);
+        assertThat(page.getContent().get(1).getClientPhone()).isEqualTo("11933333333");
+        assertThat(page.getContent().get(1).getCompletedAppointmentsThisMonth()).isZero();
+    }
+
     private Tenant saveTenant(String slug) {
         Tenant tenant = new Tenant();
         tenant.setName("Shop " + slug);
@@ -120,16 +163,29 @@ class AppointmentRepositoryTest {
     }
 
     private void saveAppointment(Tenant tenant, Professional professional, Catalog service, OffsetDateTime start, OffsetDateTime end) {
+        saveAppointment(tenant, professional, service, start, end,
+                "Cliente", "11999999999", AppointmentStatus.CONFIRMED);
+    }
+
+    private void saveAppointment(
+            Tenant tenant,
+            Professional professional,
+            Catalog service,
+            OffsetDateTime start,
+            OffsetDateTime end,
+            String clientName,
+            String clientPhone,
+            AppointmentStatus status
+    ) {
         Appointment appointment = new Appointment();
         appointment.setTenant(tenant);
         appointment.setProfessional(professional);
         appointment.setService(service);
-        appointment.setClientName("Cliente");
-        appointment.setClientPhone("11999999999");
+        appointment.setClientName(clientName);
+        appointment.setClientPhone(clientPhone);
         appointment.setStartTime(start);
         appointment.setEndTime(end);
-        appointment.setStatus(AppointmentStatus.CONFIRMED);
+        appointment.setStatus(status);
         appointmentRepository.save(appointment);
     }
 }
-

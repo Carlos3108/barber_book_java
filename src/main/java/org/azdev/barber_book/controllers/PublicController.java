@@ -4,10 +4,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.azdev.barber_book.dtos.AppointmentRequest;
 import org.azdev.barber_book.dtos.AppointmentResponse;
 import org.azdev.barber_book.dtos.CatalogResponse;
 import org.azdev.barber_book.dtos.ProfessionalResponse;
+import org.azdev.barber_book.dtos.PublicAppointmentRequest;
 import org.azdev.barber_book.services.AppointmentService;
 import org.azdev.barber_book.services.CatalogService;
 import org.azdev.barber_book.services.ProfessionalService;
@@ -77,9 +77,9 @@ public class PublicController {
     @PostMapping("/appointments")
     @Operation(summary = "Cria um novo agendamento para um cliente (público)")
     public ResponseEntity<AppointmentResponse> createAppointment(
-            @Valid @RequestBody AppointmentRequest request
+            @Valid @RequestBody PublicAppointmentRequest request
     ) {
-        AppointmentResponse response = appointmentService.createAppointment(request);
+        AppointmentResponse response = appointmentService.createAppointment(request.toAppointmentRequest());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

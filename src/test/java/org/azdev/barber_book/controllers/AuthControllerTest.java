@@ -2,6 +2,8 @@ package org.azdev.barber_book.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.azdev.barber_book.dtos.AuthenticationResponse;
+import org.azdev.barber_book.dtos.RegistrationResponse;
+import org.azdev.barber_book.services.EmailVerificationService;
 import org.azdev.barber_book.exception.BadRequestException;
 import org.azdev.barber_book.exception.GlobalExceptionHandler;
 import org.azdev.barber_book.services.AuthService;
@@ -25,26 +27,28 @@ class AuthControllerTest {
 
     @Mock
     private AuthService authService;
+    @Mock
+    private EmailVerificationService emailVerificationService;
 
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authService))
+        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authService, emailVerificationService))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
 
     @Test
-    void registerReturnsToken() throws Exception {
-        when(authService.register(any())).thenReturn(new AuthenticationResponse("register-token", "shop", "shop-slug"));
+    void registerRequiresEmailVerification() throws Exception {
+        when(authService.register(any())).thenReturn(new RegistrationResponse("mail@test.com", true));
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new RegisterPayload("shop", "owner", "mail@test.com", "12345678"))))
+                        .content(objectMapper.writeValueAsString(new RegisterPayload("shop", "owner", "mail@test.com", "12345678", true, true))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("register-token"));
+                .andExpect(jsonPath("$.verificationRequired").value(true));
     }
 
     @Test
@@ -59,6 +63,46 @@ class AuthControllerTest {
     }
 
     @Test
+    void verifyEmailReturnsToken() throws Exception {
+        when(emailVerificationService.verify("mail@test.com", "123456"))
+                .thenReturn(new AuthenticationResponse("verified-token", "shop", "shop-slug"));
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"mail@test.com\",\"code\":\"123456\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("verified-token"));
+    }
+
+    @Test
+    void verifyEmailRejectsMalformedCode() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"mail@test.com\",\"code\":\"12ab\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void resendVerificationReturnsNoContent() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/resend-verification")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"mail@test.com\"}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void loginWithUnverifiedEmailReturnsForbiddenWithCode() throws Exception {
+        when(authService.authenticate(any()))
+                .thenThrow(new org.azdev.barber_book.exception.EmailNotVerifiedException());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginPayload("mail@test.com", "1234"))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("EMAIL_NOT_VERIFIED"));
+    }
+
+    @Test
     void loginWithInvalidCredentialsReturnsBadRequest() throws Exception {
         when(authService.authenticate(any()))
                 .thenThrow(new BadRequestException("Credenciais inválidas."));
@@ -70,7 +114,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message").value("Credenciais inválidas."));
     }
 
-    private record RegisterPayload(String shopName, String ownerName, String email, String password) {
+    private record RegisterPayload(String shopName, String ownerName, String email, String password, boolean adultConfirmed, boolean termsAccepted) {
     }
 
     private record LoginPayload(String email, String password) {

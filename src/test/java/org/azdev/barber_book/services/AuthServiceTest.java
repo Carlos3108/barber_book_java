@@ -3,6 +3,7 @@ package org.azdev.barber_book.services;
 import org.azdev.barber_book.dtos.AuthenticationRequest;
 import org.azdev.barber_book.dtos.AuthenticationResponse;
 import org.azdev.barber_book.dtos.RegisterRequest;
+import org.azdev.barber_book.dtos.RegistrationResponse;
 import org.azdev.barber_book.models.Tenant;
 import org.azdev.barber_book.models.User;
 import org.azdev.barber_book.security.AuthenticatedUserPrincipal;
@@ -43,13 +44,15 @@ class AuthServiceTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private SlugService slugService;
+    @Mock
+    private EmailVerificationService emailVerificationService;
 
     @InjectMocks
     private AuthService authService;
 
     @Test
-    void registerCreatesTenantAndUserAndReturnsToken() {
-        RegisterRequest request = new RegisterRequest("Barber Shop", "Carlos", "carlos@test.com", "123456");
+    void registerCreatesUnverifiedUserAndSendsCode() {
+        RegisterRequest request = new RegisterRequest("Barber Shop", "Carlos", "carlos@test.com", "123456", true, true);
         Tenant savedTenant = new Tenant();
         savedTenant.setId(UUID.randomUUID());
         savedTenant.setName("Barbearia Central");
@@ -64,21 +67,25 @@ class AuthServiceTest {
         when(passwordEncoder.encode(request.password())).thenReturn("encoded-password");
         when(tenantRepository.save(any(Tenant.class))).thenReturn(savedTenant);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
-        when(jwtService.generateToken(any(AuthenticatedUserPrincipal.class))).thenReturn("jwt-token");
 
-        AuthenticationResponse response = authService.register(request);
+        RegistrationResponse response = authService.register(request);
 
-        assertThat(response.token()).isEqualTo("jwt-token");
+        assertThat(response.verificationRequired()).isTrue();
+        assertThat(response.email()).isEqualTo("carlos@test.com");
+        verify(emailVerificationService).issueCode(any(User.class));
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
         User createdUser = userCaptor.getValue();
         assertThat(createdUser.getPassword()).isEqualTo("encoded-password");
         assertThat(createdUser.getTenant()).isEqualTo(savedTenant);
+        assertThat(createdUser.getLegalVersion()).isEqualTo("1.0");
+        assertThat(createdUser.getTermsAcceptedAt()).isNotNull();
+        assertThat(createdUser.getAdultConfirmedAt()).isNotNull();
     }
 
     @Test
     void registerThrowsWhenEmailAlreadyExists() {
-        RegisterRequest request = new RegisterRequest("Barber Shop", "Carlos", "carlos@test.com", "123456");
+        RegisterRequest request = new RegisterRequest("Barber Shop", "Carlos", "carlos@test.com", "123456", true, true);
         when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(new User()));
 
         assertThatThrownBy(() -> authService.register(request))
@@ -96,6 +103,7 @@ class AuthServiceTest {
         tenant.setName("Barbearia Central");
         tenant.setPlanStatus("ACTIVE");
         user.setTenant(tenant);
+        user.setEmailVerifiedAt(java.time.OffsetDateTime.now());
 
         when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(user));
         when(jwtService.generateToken(any(AuthenticatedUserPrincipal.class))).thenReturn("jwt-token");
@@ -104,6 +112,17 @@ class AuthServiceTest {
 
         assertThat(response.token()).isEqualTo("jwt-token");
         verify(authenticationManager).authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
+    }
+
+    @Test
+    void authenticateRejectsUnverifiedEmail() {
+        AuthenticationRequest request = new AuthenticationRequest("carlos@test.com", "123456");
+        User user = new User();
+        user.setEmail(request.email());
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.authenticate(request))
+                .isInstanceOf(org.azdev.barber_book.exception.EmailNotVerifiedException.class);
     }
 
     @Test

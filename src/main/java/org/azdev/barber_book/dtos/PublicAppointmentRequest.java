@@ -1,0 +1,36 @@
+package org.azdev.barber_book.dtos;
+
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+public record PublicAppointmentRequest(
+        @NotBlank(message = "O nome do cliente é obrigatório")
+        String clientName,
+
+        @Pattern(regexp = "^\\d{10,11}$", message = "Formato inválido")
+        @NotBlank(message = "O telefone do cliente é obrigatório")
+        String clientPhone,
+
+        @NotNull(message = "O profissional é obrigatório")
+        UUID professionalId,
+
+        @NotNull(message = "O serviço é obrigatório")
+        UUID serviceId,
+
+        @NotNull(message = "O horário de início é obrigatório")
+        @FutureOrPresent(message = "O agendamento não pode ser no passado")
+        OffsetDateTime startTime,
+
+        @AssertTrue(message = "Confirme que você tem 18 anos ou mais, ou é responsável legal pelo cliente")
+        boolean adultOrGuardianConfirmed) {
+
+    public AppointmentRequest toAppointmentRequest() {
+        return new AppointmentRequest(clientName, clientPhone, professionalId, serviceId, startTime);
+    }
+}

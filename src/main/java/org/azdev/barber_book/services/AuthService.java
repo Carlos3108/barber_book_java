@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.azdev.barber_book.dtos.AuthenticationRequest;
 import org.azdev.barber_book.dtos.AuthenticationResponse;
 import org.azdev.barber_book.dtos.RegisterRequest;
+import org.azdev.barber_book.dtos.RegistrationResponse;
+import org.azdev.barber_book.exception.EmailNotVerifiedException;
 import org.azdev.barber_book.exception.BadCredentialsException;
 import org.azdev.barber_book.exception.BadRequestException;
 import org.azdev.barber_book.models.Tenant;
@@ -22,15 +24,19 @@ import java.time.OffsetDateTime;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+    // Deve acompanhar a versão publicada em LEGAL_INFO (frontend, src/lib/legal.ts)
+    static final String CURRENT_LEGAL_VERSION = "1.0";
+
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final TenantRepository tenantRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final SlugService slugService;
+    private final EmailVerificationService emailVerificationService;
 
     @Transactional
-    public AuthenticationResponse register(RegisterRequest request){
+    public RegistrationResponse register(RegisterRequest request){
         if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new BadRequestException("Este e-mail já está cadastrado");
         }
@@ -47,11 +53,15 @@ public class AuthService {
         user.setEmail(request.email());
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setTenant(tenant);
-        user = userRepository.save(user);
+        OffsetDateTime acceptedAt = OffsetDateTime.now();
+        user.setTermsAcceptedAt(acceptedAt);
+        user.setAdultConfirmedAt(acceptedAt);
+        user.setLegalVersion(CURRENT_LEGAL_VERSION);
+        user =  userRepository.save(user);
 
-        var jwtToken = jwtService.generateToken(AuthenticatedUserPrincipal.from(user));
+        emailVerificationService.issueCode(user);
 
-        return new AuthenticationResponse(jwtToken, tenant.getName(), tenant.getSlug());
+        return new RegistrationResponse(user.getEmail(), true);
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request){
@@ -64,6 +74,10 @@ public class AuthService {
 
         var user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new BadCredentialsException("Usuário não encontrado."));
+
+        if (!user.isEmailVerified()) {
+            throw new EmailNotVerifiedException();
+        }
 
         var jwtToken = jwtService.generateToken(AuthenticatedUserPrincipal.from(user));
 

@@ -90,6 +90,18 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, message, request.getRequestURI());
     }
 
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ApiErrorResponse> handleEmailNotVerified(EmailNotVerifiedException ex, HttpServletRequest request) {
+        ApiErrorResponse response = new ApiErrorResponse(
+                OffsetDateTime.now(),
+                HttpStatus.FORBIDDEN.value(),
+                EmailNotVerifiedException.CODE,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
     @ExceptionHandler({UnauthorizedException.class, SecurityException.class, AccessDeniedException.class})
     public ResponseEntity<ApiErrorResponse> handleSecurity(Exception ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request.getRequestURI());

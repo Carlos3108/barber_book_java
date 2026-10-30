@@ -37,7 +37,7 @@ public class WhatsAppNotificationService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleAppointmentCreated(AppointmentCreatedEvent event) {
-        log.info("Iniciando envio de WhatsApp em background para {}", event.clientPhone());
+        log.info("Iniciando envio de WhatsApp em background para o agendamento {}", event.appointmentId());
 
         entityManager.createNativeQuery(
                         "SELECT set_config('app.current_tenant_id', :tenantId, true)")
@@ -62,9 +62,10 @@ public class WhatsAppNotificationService {
                     settings.getInstanceName(),
                     "55" + event.clientPhone(),
                     message);
-            log.info("WhatsApp enviado com sucesso para {}", event.clientPhone());
+            log.info("WhatsApp enviado com sucesso para o agendamento {}", event.appointmentId());
         } catch (RestClientException e) {
-            log.error("Falha ao enviar WhatsApp para {}", event.clientPhone(), e);
+            log.error("Falha ao enviar WhatsApp para o agendamento {} (erro: {})",
+                    event.appointmentId(), e.getClass().getSimpleName());
         }
     }
 }

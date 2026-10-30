@@ -3,6 +3,8 @@ package org.azdev.barber_book.repositories;
 import org.azdev.barber_book.models.Appointment;
 import org.azdev.barber_book.models.enums.AppointmentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -11,6 +13,33 @@ import java.util.List;
 import java.util.UUID;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, UUID> {
+
+    @Query(value = """
+        SELECT MAX(a.clientName) AS clientName,
+               a.clientPhone AS clientPhone,
+               SUM(CASE WHEN a.startTime >= :monthStart AND a.startTime < :monthEnd THEN 1 ELSE 0 END)
+                   AS completedAppointmentsThisMonth,
+               MAX(a.startTime) AS lastCompletedAt
+        FROM Appointment a
+        WHERE a.tenant.id = :tenantId
+          AND a.status = :completedStatus
+        GROUP BY a.clientPhone
+        ORDER BY SUM(CASE WHEN a.startTime >= :monthStart AND a.startTime < :monthEnd THEN 1 ELSE 0 END) DESC,
+                 MAX(a.startTime) DESC
+        """,
+        countQuery = """
+        SELECT COUNT(DISTINCT a.clientPhone)
+        FROM Appointment a
+        WHERE a.tenant.id = :tenantId
+          AND a.status = :completedStatus
+        """)
+    Page<ClientFrequencyProjection> findClientFrequencyByTenant(
+            @Param("tenantId") UUID tenantId,
+            @Param("completedStatus") AppointmentStatus completedStatus,
+            @Param("monthStart") OffsetDateTime monthStart,
+            @Param("monthEnd") OffsetDateTime monthEnd,
+            Pageable pageable
+    );
 
     List<Appointment> findByTenantIdAndStartTimeBetweenOrderByStartTimeAsc(
             UUID tenantId,
